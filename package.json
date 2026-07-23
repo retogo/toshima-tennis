@@ -1,0 +1,15 @@
+{
+  "name": "toshima-tennis",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "node-html-parser": "^9.0.0"
+  }
+}

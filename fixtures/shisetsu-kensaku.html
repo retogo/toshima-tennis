@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<!--[if IE 8 ]> <html class="lt-ie9 ie8" lang="ja"> <![endif]-->
+<!--[if IE 9 ]> <html class="lt-ie10 ie9" lang="ja"> <![endif]-->
+<!--[if (gte IE 10)|!(IE)]><!--> <html lang="ja"> <!--<![endif]-->
+<head id="ctl00_Head1"><meta charset="utf-8" /><title>
+	豊島区公共施設予約システム
+</title><meta http-equiv="Pragma" content="no-cache" /><meta http-equiv="Cache-Control" content="no-cache" /><meta http-equiv="Expires" content="-1" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link href="/toshima/WebR/Content/css/font-awesome.min.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/jquery-ui-1.11.2.min.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/default.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/default_print.css?LastUpdDate=20180817" media="print" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/tooltipster.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/jquery.remodal.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery-1.11.1.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery-ui-1.11.2.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/common.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.tooltipster.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.remodal.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.inputfocus.js?LastUpdDate=20180817"></script>
+	<!--[if lt IE 9]> 
+	<script src="/toshima/WebR/Scripts/html5.js?LastUpdDate=20180817"></script>
+	<script src="/toshima/WebR/Scripts/IE9.js?LastUpdDate=20180817"></script>
+	<script src="/toshima/WebR/Scripts/css3-mediaqueries.js?LastUpdDate=20180817"></script> 
+	<![endif]-->
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            unload_flg = 0;
+            
+            // 文字サイズ変更時のみスケール調整
+            
+        });
+	    $(document).on('close', '[data-remodal-id=logoutInfo]', function () {
+		    dialog_flg = 0;
+	    });
+	    $(document).on('close', '[data-remodal-id=loginInfo]', function () {
+		    dialog_flg = 0;
+	    });
+        $.ajaxSetup({
+            error: function (xhr, status, error) {
+                    var errorpage = 'https://www2.pf489.com/Toshima/WebR/Error/html/GenericError.html';
+                    if (errorpage) {
+                        dialog_flg = 1; // アンロードのメッセージを表示させない
+                        window.location.href = errorpage;
+                    }
+                }
+        });
+    </script>
+
+<div class="remodal info" data-remodal-id="SesseionTimeoutWarn">
+	<h2>メッセージ</h2>
+	<div><p>セッションタイムアウトまであと0分です。</p></div>
+</div>
+  
+<link href="/toshima/WebR/Content/css/WgR_ShisetsuKensaku.css?LastUpdDate=20180817" media="screen" rel="stylesheet" type="text/css">
+
+<!-- 付帯設備情報 start -->
+<style type="text/css">
+
+	.list table td.equip ul li.equip01
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/parking.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip01
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/parking.gif);
+	  
+	}
+
+	.list table td.equip ul li.equip02
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/slopeP.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip02
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/slopeP.gif);
+	  
+	}
+
+	.list table td.equip ul li.equip03
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/slope.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip03
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/slope.gif);
+	  
+	}
+
+	.list table td.equip ul li.equip04
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/toilet.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip04
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/toilet.gif);
+	  
+	}
+
+	.list table td.equip ul li.equip05
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/rental.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip05
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/rental.gif);
+	  
+	}
+
+	.list table td.equip ul li.equip06
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/elevator.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip06
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/elevator.gif);
+	  
+	}
+
+	.list table td.equip ul li.equip07
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/baby.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip07
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/baby.gif);
+	  
+	}
+
+	.list table td.equip ul li.equip08
+	{
+		background-image: url(/toshima/WebR/Content/images/sign/aed.gif);
+	}
+	.remodal.detail > div.equip > ul li.equip08
+	{
+      
+		background-image: url(/toshima/WebR/Content/images/sign/aed.gif);
+	  
+	}
+
+</style>
+<!-- 付帯設備情報 end -->
+<!-- 地図情報JS start -->
+<script type="text/javascript">
+	    function OpenMapWindow() 
+        {               
+            var shisetsuList = document.getElementsByName("checkShisetsu");
+            var shisetsuListVal = new Array();
+            for(i = 0; i < shisetsuList.length; i++)
+            {
+                if (shisetsuList[i].checked){
+                    shisetsuListVal.push(shisetsuList[i].value);
+                }
+            }
+
+	        var callAdr = "";
+	        for (var i = 0; i < shisetsuListVal.length; i++) {
+	            var adr = GetMapAdr(shisetsuListVal[i]);
+                callAdr = callAdr + adr + ",";
+	        }
+            
+	        array_CallAdr = callAdr.split(","); 
+
+	        if (array_CallAdr.length == 0) showMessageDialog('failure','エラー', '地図で場所を確認したい施設を選択してください。');
+            else {
+	            var openFlg = "False"; 
+                
+                for (var no = 0; no < array_CallAdr.length - 1; no++) {
+	                if (array_CallAdr[no] != "") {
+                        window.open(array_CallAdr[no], "", "toolbar=yes,location=yes,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=800,height=600 ");
+                        openFlg = "True";
+	                }
+	            }
+
+	            if (openFlg == "False") showMessageDialog('failure','エラー', '地図で場所を確認したい施設を選択してください。');
+	        }
+        }
+
+        // 地図アドレス
+	    function GetMapAdr(jiss) {
+
+	        var hdnName = "map_" + jiss;
+	        var obj = document.forms.form1.elements[hdnName];
+
+            var url = obj.value + jiss;
+
+            return url;
+	        
+	    }
+<!-- 地図情報JS end -->
+<!-- パワーチップ設定 start -->     
+	    $(document).ready(function() {
+	        $('.breadcrumbs a').tooltipster({
+	            potision: 'bottom'
+	        });
+            $(document).on('mouseover', 'div', function() {
+	            $('table td.equip ul li').tooltipster({
+					potision: 'bottom',
+					multiple: true
+	            });
+            });
+
+		    $('#btnNext').tooltipster({
+                minWidth: 250,
+			    content: '施設を選んだら、次へ進みましょう。',
+			    autoClose: false,
+			    positionTracker: true,
+				multiple: true
+		    });
+
+            setToggleOutline();
+
+			// アンロード時のダイアログ対象外、二重送信
+			beforeSubmit("",".list_head .toggle li label");
+
+<!-- スクロール設定 start --> 
+            var scroll = "";
+
+            if (scroll != "") {
+	            var target = $('#' + scroll);
+	            var position = target.offset().top - 20;
+	            $("html, body").animate({ scrollTop: position }, 800);
+            } 
+<!-- スクロール設定 end --> 
+	    });
+<!-- パワーチップ設定 end -->
+        $(document).ajaxComplete(function() {
+		    setToggleOutline();
+
+			// アンロード時のダイアログ対象外、二重送信
+			beforeSubmit("",".list_head .toggle li label");
+
+		    $('#btnNext').tooltipster({
+                minWidth: 250,
+			    content: '施設を選んだら、次へ進みましょう。',
+			    autoClose: false,
+			    positionTracker: true,
+				multiple: true
+		    });
+
+	    });
+
+	    // トグルボタンフォーカス時のアウトライン調整
+	    function setToggleOutline(){
+		    $(".toggle li > input, td.toggle > input").on("focus", function(){
+			    if(this.parentNode.tagName == "LI" || this.parentNode.tagName == "TD"){
+				    var childElem = this.parentNode.childNodes;
+				    if(childElem[0].tagName=="INPUT" && childElem[1].tagName=="LABEL"){
+					    $(childElem[0]).css("width", childElem[1].offsetWidth-2);
+					    $(childElem[0]).css("height", childElem[1].offsetHeight-1);
+				    }
+			    }
+		    });
+	    }
+
+        // 次へボタンのパワーチップ設定
+	    function showNextTip() {
+
+        // スマートフォンサイズの場合ツールチップを表示しない
+        var displayStatus = $('.tooltipster-base').css("display");
+        if(displayStatus == 'none' || displayStatus == null) return;
+
+        // フォントサイズが未設定のときのみ表示
+
+            // ボタンにパワーチップ表示
+	        $('#btnNext').tooltipster('show');
+
+	    }
+<!-- 明細差分取得start -->
+        var btnClickSuu = 0;
+        var btnKaisuu = 1;
+
+        function readMesaiData(){
+             btnClickSuu++;
+
+             $.ajax({
+                url: 'WgR_ShisetsuKensakuIchiran',
+                type: "GET",
+                datatype: "json",
+                cache: false,
+                traditional: true,
+                success: function (j_data) {
+                    $("#shisetsutbl").append(j_data);
+                }
+             });
+
+             if(btnKaisuu == btnClickSuu)
+             {
+                 $("#nextpage").empty(); //divだけを消す
+             }
+
+             setToggleOutline();
+
+			// アンロード時のダイアログ対象外、二重送信
+			beforeSubmit("",".list_head .toggle li label");
+
+             // モーダル差分
+             $.ajax({
+                url: 'WgR_ShisetsuKensakuModal',
+                type: "GET",
+                datatype: "json",
+                cache: false,
+                traditional: true,
+                success: function (k_data) {
+                    // 差分追加
+                    $("body").append((k_data));
+                    $('.remodal').remodal({hashTracking:false});
+
+
+                }
+             });
+        }
+<!-- 明細差分取得end -->
+	</script> 
+
+    <style type="text/css">
+        
+        
+        /**** 文字サイズ変更時のみスケール調整 ****/
+        
+    </style>
+    </head>
+
+<body >
+<form action="/toshima/WebR/Yoyaku/WgR_ShisetsuKensaku" id="form1" method="post"><input name="__RequestVerificationToken" type="hidden" value="DUMMYTOKENAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<div id="wrap" class="remodal-bg">
+	<div id="wrap_head">
+        
+        <div id="head" >
+        
+        <h1><span class="city">豊島区</span><span class="title">公共施設予約システム</span></h1>
+        
+       <div class="login">
+        <p><span>利用者IDをお持ちの方</span><a href="javascript:__doPostBack('login','')" class="btnBlue">ログイン</a></p>
+       </div>
+             
+			  <ul>
+                  <li class="message"><a href="javascript:__doPostBack('message','')">メッセージ</a></li><li class="tebiki"><a href="javascript:void(0)" onclick="window.open('https://www2.pf489.com/toshima/help/webR/index.asp','','toolbar=yes,location=yes,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=800,height=700'); return false;">ご利用の手引き</a></li><li class="style"><a href="javascript:__doPostBack('color','')">色・文字サイズ変更</a></li>
+			  </ul>
+			  <div class="dock_nav">
+				  <a href="#nav">メニュー</a>
+			  </div>
+		  </div>
+	</div>
+  <div id="body">
+    
+   
+    <ul class="breadcrumbs clearfix">
+		<li><a href="javascript:__doPostBack('menu','')"  title="メニュー：空き状況照会">メニュー</a></li>
+		<li class="current"><span>施設の検索</span></li>
+		<li>施設別空き状況</li>
+		<li>時間帯別空き状況</li>
+		<li>詳細申請</li>
+		<li>申込確認</li>
+		<li>申込完了</li>
+	</ul>
+	<div class="content_head">
+	    <h2>施設検索</h2>
+        <p class="desc">
+        空き状況の照会や予約をしたい施設の名称を選んで「次へ進む」を押してください。                                               
+        複数選択可能です。
+        </p>
+	</div>
+	<div class="content_body">
+		<div class="list">
+		    <div class="list_head clearfix">
+				<dl>
+
+				</dl>
+
+				    <input type="button" class="btnGreen" value="&#xf041; 選んだ施設の場所を地図で確認" onclick="OpenMapWindow();">
+
+			</div>
+<!-- 明細情報設定start -->
+            <div id="ichiran">
+
+<table id ="shisetsu" class="shisetsu">
+			   <thead>
+				<tr>
+					<th class="comment">お知らせ</th>
+					<th class="shisetsu">施設名<span>複数選択可</span></th>
+					<th class="info">案内/リンク</th>
+
+					<th class="equip">付帯設備</th>
+					<th class="detail">詳細</th>
+				</tr>
+			    </thead>
+		    <tbody id="shisetsutbl">
+
+         <tr >
+		     <td class="comment">
+
+            <input type="hidden" name = "map_116001" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116001" value="116001" onclick="showNextTip();" ><label for="checkShisetsu116001" class="switch-off">豊島体育館</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003420.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip01" title="駐車場"></li>
+
+                <li class ="equip02" title="車椅子使用者駐車場"></li>
+
+                <li class ="equip03" title="車椅子利用可"></li>
+
+                <li class ="equip04" title="車椅子対応トイレ"></li>
+
+                <li class ="equip06" title="エレベーター"></li>
+
+                <li class ="equip07" title="おむつ交換所"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu001_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr  class="even">
+		     <td class="comment">
+<a href="#shisetsu002_info"></a>
+            <input type="hidden" name = "map_116002" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116002" value="116002" onclick="showNextTip();" ><label for="checkShisetsu116002" class="switch-off">巣鴨体育館</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003424.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip04" title="車椅子対応トイレ"></li>
+
+                <li class ="equip07" title="おむつ交換所"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu002_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr >
+		     <td class="comment">
+
+            <input type="hidden" name = "map_116003" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116003" value="116003" onclick="showNextTip();" ><label for="checkShisetsu116003" class="switch-off">雑司が谷体育館</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003435.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip01" title="駐車場"></li>
+
+                <li class ="equip02" title="車椅子使用者駐車場"></li>
+
+                <li class ="equip03" title="車椅子利用可"></li>
+
+                <li class ="equip04" title="車椅子対応トイレ"></li>
+
+                <li class ="equip05" title="車椅子貸出し"></li>
+
+                <li class ="equip06" title="エレベーター"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu003_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr  class="even">
+		     <td class="comment">
+
+            <input type="hidden" name = "map_116004" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116004" value="116004" onclick="showNextTip();" ><label for="checkShisetsu116004" class="switch-off">池袋スポーツセンター</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003496.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip02" title="車椅子使用者駐車場"></li>
+
+                <li class ="equip03" title="車椅子利用可"></li>
+
+                <li class ="equip04" title="車椅子対応トイレ"></li>
+
+                <li class ="equip05" title="車椅子貸出し"></li>
+
+                <li class ="equip06" title="エレベーター"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu004_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr >
+		     <td class="comment">
+<a href="#shisetsu005_info"></a>
+            <input type="hidden" name = "map_116005" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116005" value="116005" onclick="showNextTip();" ><label for="checkShisetsu116005" class="switch-off">総合体育場</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003430.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip05" title="車椅子貸出し"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu005_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr  class="even">
+		     <td class="comment">
+
+            <input type="hidden" name = "map_116006" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116006" value="116006" onclick="showNextTip();" ><label for="checkShisetsu116006" class="switch-off">西巣鴨体育場</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003476.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu006_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr >
+		     <td class="comment">
+<a href="#shisetsu007_info"></a>
+            <input type="hidden" name = "map_116007" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116007" value="116007" onclick="showNextTip();" ><label for="checkShisetsu116007" class="switch-off">荒川野球場</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003487.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu007_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr  class="even">
+		     <td class="comment">
+<a href="#shisetsu008_info"></a>
+            <input type="hidden" name = "map_116008" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116008" value="116008" onclick="showNextTip();" ><label for="checkShisetsu116008" class="switch-off">三芳グランド</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003492.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip01" title="駐車場"></li>
+
+                <li class ="equip02" title="車椅子使用者駐車場"></li>
+
+                <li class ="equip03" title="車椅子利用可"></li>
+
+                <li class ="equip04" title="車椅子対応トイレ"></li>
+
+                <li class ="equip06" title="エレベーター"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu008_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr >
+		     <td class="comment">
+
+            <input type="hidden" name = "map_116009" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116009" value="116009" onclick="showNextTip();" ><label for="checkShisetsu116009" class="switch-off">南長崎スポーツセンター</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/028294.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip01" title="駐車場"></li>
+
+                <li class ="equip02" title="車椅子使用者駐車場"></li>
+
+                <li class ="equip03" title="車椅子利用可"></li>
+
+                <li class ="equip04" title="車椅子対応トイレ"></li>
+
+                <li class ="equip06" title="エレベーター"></li>
+
+                <li class ="equip07" title="おむつ交換所"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu009_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+         <tr  class="even">
+		     <td class="comment">
+<a href="#shisetsu086_info"></a>
+            <input type="hidden" name = "map_116086" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+                      </td>
+
+            <td class="shisetsu toggle"><input type="checkbox" name="checkShisetsu" id="checkShisetsu116086" value="116086" onclick="showNextTip();" ><label for="checkShisetsu116086" class="switch-off">千早スポーツフィールド</label></td>
+
+			<td class="info">
+
+            <a href="https://www.city.toshima.lg.jp/501/2406251329.html" target="_blank" class="info">案内</a>
+
+            </td>
+
+<!-- 付帯設備情報設定 -->
+        	<td class="equip"><ul>
+
+                <li class ="equip01" title="駐車場"></li>
+
+                <li class ="equip02" title="車椅子使用者駐車場"></li>
+
+                <li class ="equip03" title="車椅子利用可"></li>
+
+                <li class ="equip04" title="車椅子対応トイレ"></li>
+
+                <li class ="equip06" title="エレベーター"></li>
+
+                <li class ="equip07" title="おむつ交換所"></li>
+
+                <li class ="equip08" title="ＡＥＤ"></li>
+
+           </ul></td>
+<!-- 付帯設備情報設定 -->
+<!-- 詳細設定 -->
+          <td class="detail">
+
+          <a href="javascript:void(0);" onclick="var inst = $.remodal.lookup[$('[data-remodal-id=shisetsu086_detail]').data('remodal')];inst.open();"></a>
+
+          </td>
+<!-- 詳細設定 -->
+		</tr>
+
+			</tbody>
+</table>
+
+              <div id="nextpage"><a href="javascript:void(0);" class="btnGray" onclick="readMesaiData();">さらに読み込む</a></div>
+
+            </div>
+<!-- 明細情報設定end -->
+            <input type="hidden" name="HyojiMode" id="HyojiMode" value="filterAll" />
+	     </div>
+	  </div>
+
+  </div>
+  
+<div class="navbar">
+		<ul>
+
+            <li class="next"><a href="javascript:__doPostBack('next','')" class="btnBlue" id="btnNext">次へ進む</a></li>
+            <li class="prev"><a href="javascript:__doPostBack('prev','')" class="btnBlue">前に戻る</a></li>
+            <li class="menu"><a href="javascript:__doPostBack('menu','')" class="btnBlue">メニュー</a></li>
+		</ul>
+</div>
+
+</div>
+<div class="remodal nav" data-remodal-id="nav">
+	<h2>メニュー</h2>
+    
+	<ul>
+        <li class="message"><a href="javascript:__doPostBack('message','')">メッセージ</a></li><li class="style"><a href="javascript:__doPostBack('color','')">色・文字サイズ変更</a></li><li class="tebiki"><a href="javascript:void(0)" onclick="window.open('https://www2.pf489.com/toshima/help/webR/index.asp','','toolbar=yes,location=yes,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=800,height=700'); return false;">ご利用の手引き</a></li>
+	</ul>
+</div>
+
+<!-- メッセージダイアログ -->
+
+
+<script type="text/javascript">
+    
+    function showMessageDialog(style,title,message) {
+        showMessageDialog(style,title,message,"msgconfirm",null);
+    }
+    function showMessageDialog(style,title,message,confirmCmd,confirmArg) {
+        $("#messageDlg").removeClass().addClass('remodal ' + style);
+        $("#messageDlg h2").text(title);
+        $("#messageDlg div p").html(message);
+        $("#messageDlg ul").remove();
+        if (style=="notice") {
+            $("#messageDlg div").after(
+                "<ul class=\"clearfix\">" +
+                    "<li><input type=\"button\" class=\"btnSky remodal-confirm\" value=\"はい\" onclick=\"__doPostBack('"+confirmCmd+"','"+confirmArg+"');\"></li>" +
+                    "<li><input type=\"button\" class=\"btnSky remodal-cancel\" value=\"いいえ\" onclick=\"location.href='#';\"></li>" +
+                "</ul>");
+            beforeSubmit('', '#messageDlg .remodal-confirm');
+        }
+        location.href='#messageDlg';
+    };
+</script>
+<div class="remodal" id="messageDlg" data-remodal-id="messageDlg">
+    <h2></h2>
+    <div class="clearfix"><p></p>
+         このダイアログは右上の×で閉じることができます。<br />
+        （ブラウザの戻るボタンは使用しないでください。）
+    </div>
+</div>
+<!--施設からのお知らせ-->
+
+    <div class="remodal info" data-remodal-id="shisetsu002_info">
+       <h2>巣鴨体育館<span>からのお知らせ</span></h2>
+       <div class="item_wrap">
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>ネット予約後、期間内にお支払いがない場合は自動キャンセルになりますのでお気をつけください。ご不明な点がございましたら巣鴨体育館までご連絡ください。</dd></dl>
+            <dl><dt>日付</dt><dd>2022年2月10日</dd></dl>
+          </div>
+       
+       </div>
+    </div>
+    
+    <div class="remodal info" data-remodal-id="shisetsu005_info">
+       <h2>総合体育場<span>からのお知らせ</span></h2>
+       <div class="item_wrap">
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>《庭球場の大会予備日について（10月分より）》<BR>　予備日開放の取り扱いに関して今後事前に告知をさせていただきます。事前告知につきましては、以下のように掲載させていただきます<BR>《例文》<BR>●月●日のテニス大会が開催された場合は□月□日午後に開放させていただきます。</dd></dl>
+            <dl><dt>日付</dt><dd>2021年8月31日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>野球場の駐車場はA面６台、B面６台。ご利用時間のみ駐車可能になります。お時間にご注意をお願いいたします。</dd></dl>
+            <dl><dt>日付</dt><dd>2021年3月11日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>当球場ご利用の際は木製バット又は低反発バットをご使用いただきますようお願い申しあげます。貸し出し用を窓口で用意しています。ご協力お願いいたします。</dd></dl>
+            <dl><dt>日付</dt><dd>2021年3月11日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>＊雨天時の総合体育場に使用可否については、Twitter又はお電話にて確認ください！(ご利用1時間前）<a href="https://twitter.com/ToshimaSogo" target="_blank">総合体育場Twitter</a></dd></dl>
+            <dl><dt>日付</dt><dd>2020年5月15日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>野球場を平日朝8時からお車でご来場のお客様は、入口がスクールゾーンになる為7時30分～8時30分を避けてご来場ください。</dd></dl>
+            <dl><dt>日付</dt><dd>2016年12月20日</dd></dl>
+          </div>
+       
+       </div>
+    </div>
+    
+    <div class="remodal info" data-remodal-id="shisetsu007_info">
+       <h2>荒川野球場<span>からのお知らせ</span></h2>
+       <div class="item_wrap">
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>荒川倉庫及び整備道具用のカギを総合体育場にて貸し出しております。荒川野球場をご利用の方は総合体育場までお越しください。なお、返却はご利用後1週間以内にご返却ください</dd></dl>
+            <dl><dt>日付</dt><dd>2021年3月11日</dd></dl>
+          </div>
+       
+       </div>
+    </div>
+    
+    <div class="remodal info" data-remodal-id="shisetsu008_info">
+       <h2>三芳グランド<span>からのお知らせ</span></h2>
+       <div class="item_wrap">
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>令和7年4月1日以降の予約については、以下の通り運用が変更となります。<BR>【利用日7日前まで】豊島区公共施設予約システムにて受付<BR>【それ以降】受付不可（電話受付も不可となりますので、予めご了承ください。）</dd></dl>
+            <dl><dt>日付</dt><dd>2025年2月1日</dd></dl>
+          </div>
+       
+       </div>
+    </div>
+    
+    <div class="remodal info" data-remodal-id="shisetsu086_info">
+       <h2>千早スポーツフィールド<span>からのお知らせ</span></h2>
+       <div class="item_wrap">
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>＊令和8年9月30日(水)までの会議室の利用について＊空き状況は施設までお問い合わせください。ご予約は従来通り、施設窓口にて承ります。なお、ご利用日の1か月前からご予約いただけます。</dd></dl>
+            <dl><dt>日付</dt><dd>2026年6月30日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>１週間以内のご予約はお電話にて承ります。[受付時間:9時～20時]</dd></dl>
+            <dl><dt>日付</dt><dd>2026年5月16日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>千早スポーツフィールドでは利用者の健康を守るために、熱中症指数（WBGT）が規定値より高い場合には利用を中止する場合がございます。<BR>詳しくは下記URLにてご確認ください。<a href="https://chihaya-sports.com/news/411/" target="_blank">熱中症事故の防止と高温時における利用自粛のお願い</a></dd></dl>
+            <dl><dt>日付</dt><dd>2026年3月28日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>千早スポーツフィールドでは、令和７年７月１日(火)より、予約システムを通じて利用申込をされた貸切利用について、複数のチームが参加する大会等の利用を制限させていただきます。<BR>近隣等への配慮のため、ご理解・ご協力の程、よろしくお願いいたします。</dd></dl>
+            <dl><dt>日付</dt><dd>2025年4月30日</dd></dl>
+          </div>
+       
+          <div class="item">
+            
+            <dl><dt>内容</dt><dd>ラグビーゴールポストの組み立てはスタッフの指示に従い利用者様自身に行っていただきます。成人男性6名以上で所要時間は片側20分ほどを要します。組み立て、片付けは利用時間に含まれますのでご注意ください。</dd></dl>
+            <dl><dt>日付</dt><dd>2024年9月1日</dd></dl>
+          </div>
+       
+       </div>
+    </div>
+    
+<!-- 本日のおしらせ・詳細モーダル -->
+
+<!-- 本日の予定start -->
+
+            <div class="remodal today" data-remodal-id="today_001">
+	            <h2>豊島体育館<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>競技場　Ａ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～12:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>13:00～17:00</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>18:00～21:30</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>競技場　Ｂ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～12:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>13:00～17:00</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>18:00～21:30</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>体育室</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～12:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>13:00～17:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>18:00～21:30</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+            <div class="remodal today" data-remodal-id="today_002">
+	            <h2>巣鴨体育館<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>競技場</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～21:30</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+            <div class="remodal today" data-remodal-id="today_003">
+	            <h2>雑司が谷体育館<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>競技場</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～12:00</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>13:00～21:30</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>体育室</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>12:10～18:20</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>18:30～21:30</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>バレエ・舞踊・ダンス</td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+            <div class="remodal today" data-remodal-id="today_004">
+	            <h2>池袋スポーツセンター<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>武道場板面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～15:00</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>18:00～21:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>その他武術</td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>武道場畳面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～15:00</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>18:00～21:00</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+            <div class="remodal today" data-remodal-id="today_005">
+	            <h2>総合体育場<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>野球場　Ａ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>8:00～10:00</td>
+                    
+                           <td>団体01</td>
+                    
+			        <td>軟式野球（一般）</td>
+				</tr>
+
+				<tr>
+			        <td>10:00～12:00</td>
+                    
+                           <td>大会</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>16:00～18:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>軟式野球（少年）</td>
+				</tr>
+
+				<tr>
+			        <td>18:30～20:30</td>
+                    
+                           <td>大会</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>野球場　Ｂ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>18:30～20:30</td>
+                    
+                           <td>大会</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>庭球場　１面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>11:00～21:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>庭球場　１面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+                           <td>団体02</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>11:00～13:00</td>
+                    
+                           <td>団体03</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>13:00～15:00</td>
+                    
+                           <td>団体04</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>15:00～17:00</td>
+                    
+                           <td>団体05</td>
+                    
+			        <td>ソフトテニス</td>
+				</tr>
+
+				<tr>
+			        <td>17:00～19:00</td>
+                    
+                           <td>団体06</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>19:00～21:00</td>
+                    
+                           <td>団体07</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>庭球場　１面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+                           <td>団体08</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>11:00～13:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>13:00～15:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>17:00～19:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>19:00～21:00</td>
+                    
+                           <td>団体09</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>庭球場　１面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+                           <td>団体10</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>11:00～13:00</td>
+                    
+                           <td>団体11</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>15:00～17:00</td>
+                    
+                           <td>団体12</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>17:00～19:00</td>
+                    
+                           <td>団体05</td>
+                    
+			        <td>ソフトテニス</td>
+				</tr>
+
+				<tr>
+			        <td>19:00～21:00</td>
+                    
+                           <td>団体09</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>弓射場</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>13:00～17:00</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>17:15～20:45</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>体育室</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:30～12:30</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>13:00～17:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+            <div class="remodal today" data-remodal-id="today_006">
+	            <h2>西巣鴨体育場<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>庭球場　Ａ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+                           <td>団体13</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>11:00～13:00</td>
+                    
+                           <td>団体14</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>15:00～17:00</td>
+                    
+                           <td>団体15</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>庭球場　Ｂ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>11:00～13:00</td>
+                    
+                           <td>団体16</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>13:00～15:00</td>
+                    
+                           <td>団体17</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>15:00～17:00</td>
+                    
+                           <td>団体18</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+            <div class="remodal today" data-remodal-id="today_009">
+	            <h2>南長崎スポーツセンター<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>競技場</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～12:00</td>
+                    
+                           <td>貸切</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>13:00～17:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>バスケットボール</td>
+				</tr>
+
+				<tr>
+			        <td>18:00～21:15</td>
+                    
+                           <td>個人公開</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>多目的広場</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+                           <td>団体19</td>
+                    
+			        <td>サッカー（少年）</td>
+				</tr>
+
+				<tr>
+			        <td>17:00～20:30</td>
+                    
+                           <td>×</td>
+                    
+			        <td></td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+            <div class="remodal today" data-remodal-id="today_086">
+	            <h2>千早スポーツフィールド<span>の本日の予定</span></h2>
+                <div class="item_wrap">
+
+		<div class="item">
+			<h3>運動場</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>11:00～13:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>サッカー（一般）</td>
+				</tr>
+
+				<tr>
+			        <td>15:00～19:00</td>
+                    
+                           <td>自主事業</td>
+                    
+			        <td></td>
+				</tr>
+
+				<tr>
+			        <td>19:00～21:00</td>
+                    
+                           <td>団体20</td>
+                    
+			        <td>サッカー（一般）</td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>庭球場　Ａ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>9:00～11:00</td>
+                    
+                           <td>団体21</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>15:00～17:00</td>
+                    
+                           <td>団体22</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>17:00～19:00</td>
+                    
+                           <td>団体23</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>19:00～21:00</td>
+                    
+                           <td>団体24</td>
+                    
+			        <td>ソフトテニス</td>
+				</tr>
+
+			</table>
+		</div>
+
+		<div class="item">
+			<h3>庭球場　Ｂ面</h3>
+			<dl class="clearfix"><dt>定員</dt><dd>なし</dd></dl><table>
+				<tr>
+			        <th>時間帯</th>
+			        <th>利用者</th>
+			        <th>予定</th>
+				</tr>
+
+				<tr>
+			        <td>13:00～15:00</td>
+                    
+			                <td>個人使用</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>15:00～17:00</td>
+                    
+                           <td>団体25</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>17:00～19:00</td>
+                    
+                           <td>団体26</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+				<tr>
+			        <td>19:00～21:00</td>
+                    
+                           <td>団体27</td>
+                    
+			        <td>テニス</td>
+				</tr>
+
+			</table>
+		</div>
+
+    </div>
+</div>
+
+<!-- 本日の予定end -->
+<!-- 詳細start -->
+
+<div class="remodal detail" data-remodal-id="shisetsu001_detail">
+	<h2>豊島体育館</h2>
+
+    <input type="hidden" name = "map_116001" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003420.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip01" title="駐車場">駐車場</li>
+
+                <li class ="equip02" title="車椅子使用者駐車場">車椅子使用者駐車場</li>
+
+                <li class ="equip03" title="車椅子利用可">車椅子利用可</li>
+
+                <li class ="equip04" title="車椅子対応トイレ">車椅子対応トイレ</li>
+
+                <li class ="equip06" title="エレベーター">エレベーター</li>
+
+                <li class ="equip07" title="おむつ交換所">おむつ交換所</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu002_detail">
+	<h2>巣鴨体育館</h2>
+
+    <input type="hidden" name = "map_116002" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003424.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip04" title="車椅子対応トイレ">車椅子対応トイレ</li>
+
+                <li class ="equip07" title="おむつ交換所">おむつ交換所</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu003_detail">
+	<h2>雑司が谷体育館</h2>
+
+    <input type="hidden" name = "map_116003" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003435.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip01" title="駐車場">駐車場</li>
+
+                <li class ="equip02" title="車椅子使用者駐車場">車椅子使用者駐車場</li>
+
+                <li class ="equip03" title="車椅子利用可">車椅子利用可</li>
+
+                <li class ="equip04" title="車椅子対応トイレ">車椅子対応トイレ</li>
+
+                <li class ="equip05" title="車椅子貸出し">車椅子貸出し</li>
+
+                <li class ="equip06" title="エレベーター">エレベーター</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu004_detail">
+	<h2>池袋スポーツセンター</h2>
+
+    <input type="hidden" name = "map_116004" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003496.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip02" title="車椅子使用者駐車場">車椅子使用者駐車場</li>
+
+                <li class ="equip03" title="車椅子利用可">車椅子利用可</li>
+
+                <li class ="equip04" title="車椅子対応トイレ">車椅子対応トイレ</li>
+
+                <li class ="equip05" title="車椅子貸出し">車椅子貸出し</li>
+
+                <li class ="equip06" title="エレベーター">エレベーター</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu005_detail">
+	<h2>総合体育場</h2>
+
+    <input type="hidden" name = "map_116005" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003430.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip05" title="車椅子貸出し">車椅子貸出し</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu006_detail">
+	<h2>西巣鴨体育場</h2>
+
+    <input type="hidden" name = "map_116006" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003476.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu007_detail">
+	<h2>荒川野球場</h2>
+
+    <input type="hidden" name = "map_116007" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003487.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu008_detail">
+	<h2>三芳グランド</h2>
+
+    <input type="hidden" name = "map_116008" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003492.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip01" title="駐車場">駐車場</li>
+
+                <li class ="equip02" title="車椅子使用者駐車場">車椅子使用者駐車場</li>
+
+                <li class ="equip03" title="車椅子利用可">車椅子利用可</li>
+
+                <li class ="equip04" title="車椅子対応トイレ">車椅子対応トイレ</li>
+
+                <li class ="equip06" title="エレベーター">エレベーター</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu009_detail">
+	<h2>南長崎スポーツセンター</h2>
+
+    <input type="hidden" name = "map_116009" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/028294.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip01" title="駐車場">駐車場</li>
+
+                <li class ="equip02" title="車椅子使用者駐車場">車椅子使用者駐車場</li>
+
+                <li class ="equip03" title="車椅子利用可">車椅子利用可</li>
+
+                <li class ="equip04" title="車椅子対応トイレ">車椅子対応トイレ</li>
+
+                <li class ="equip06" title="エレベーター">エレベーター</li>
+
+                <li class ="equip07" title="おむつ交換所">おむつ交換所</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<div class="remodal detail" data-remodal-id="shisetsu086_detail">
+	<h2>千早スポーツフィールド</h2>
+
+    <input type="hidden" name = "map_116086" value="https://www2.wagmap.jp/toshima/ApiDetail/LinkToMap?mid=3&amp;mtl=47&amp;fldno=14&amp;fid=">
+    
+	<ul class="clearfix">
+
+        <li class="info"><a href="https://www.city.toshima.lg.jp/501/2406251329.html" target="_blank" class="btnGreen">案内</a></li>
+
+	</ul>
+
+	<div class="equip">
+		<h3>付帯設備</h3>
+		<ul>
+
+                <li class ="equip01" title="駐車場">駐車場</li>
+
+                <li class ="equip02" title="車椅子使用者駐車場">車椅子使用者駐車場</li>
+
+                <li class ="equip03" title="車椅子利用可">車椅子利用可</li>
+
+                <li class ="equip04" title="車椅子対応トイレ">車椅子対応トイレ</li>
+
+                <li class ="equip06" title="エレベーター">エレベーター</li>
+
+                <li class ="equip07" title="おむつ交換所">おむつ交換所</li>
+
+                <li class ="equip08" title="ＡＥＤ">ＡＥＤ</li>
+
+		</ul>
+	</div>
+
+</div>
+
+<!-- 詳細end -->  
+<!-- 登録済施設グループ照会 -->
+
+<div class="remodal shisetsu_group none" data-remodal-id="shisetsuGroup">
+	<h2>登録済施設グループ</h2>
+	<div>
+<p>登録している施設グループはありません</p>
+
+	</div>
+</div>
+
+</form>
+</body>
+</html>
