@@ -41,7 +41,7 @@ bun run deploy        # image + apply
 GitHub には依存しない。すべて GCP 上で動く。
 
 ```
-Cloud Scheduler (JST 08:00-24:00 / 10分間隔)
+Cloud Scheduler (JST 06:00-02:00 / 10分間隔)
   → Cloud Run Job: poll
        空き状況を確認 → GCS の状態と比較 → 変化があれば LINE に通知
        approve モードなら候補をボタン付きで送る
@@ -286,8 +286,8 @@ RESERVE_DRY_RUN=1 RESERVE_SLOT="2026-08-08 第1面 9:00～11:00" bun run reserve
 
 ### コスト
 
-ポーリング 1 回は実測 9〜11 秒。月 2,880 回でも Cloud Run の無料枠
-（180,000 vCPU 秒 / 360,000 GiB 秒）の 2 割程度に収まる。
+ポーリング 1 回は実測 9〜11 秒。月 3,600 回でも Cloud Run の無料枠
+（180,000 vCPU 秒 / 360,000 GiB 秒）の 1/4 程度に収まる。
 仮に無料枠が無くても月 1 ドル未満。
 
 `min_instance_count = 0` と `cpu_idle = true` により、webhook は

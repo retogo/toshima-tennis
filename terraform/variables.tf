@@ -24,7 +24,7 @@ variable "name_prefix" {
 variable "poll_schedule" {
   description = "ポーリングの cron（time_zone は Asia/Tokyo）"
   type        = string
-  default     = "*/10 8-23 * * *"
+  default     = "*/10 0-1,6-23 * * *"
 }
 
 variable "image" {
