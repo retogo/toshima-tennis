@@ -1,0 +1,98 @@
+/**
+ * LINE Webhook の検証とイベント解釈。
+ *
+ * Webhook は公開エンドポイントなので、次の 2 段で守る。
+ *   1. X-Line-Signature をチャネルシークレットで検証し、LINE 以外からの
+ *      リクエストを弾く
+ *   2. 送信者の userId が自分と一致するか照合する。公式アカウントは誰でも
+ *      友だち追加できるため、署名検証だけでは第三者が予約を叩ける
+ *
+ * 2 が抜けると、ボットを見つけた他人が利用者の口座で有料のコートを
+ * 予約できてしまう。必ず両方を通すこと。
+ */
+
+const encoder = new TextEncoder();
+
+async function hmacKey(channelSecret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    encoder.encode(channelSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
+}
+
+/** 署名を作る（テストと自己検証用）。 */
+export async function sign(channelSecret: string, body: string): Promise<string> {
+  const mac = await crypto.subtle.sign(
+    "HMAC",
+    await hmacKey(channelSecret),
+    encoder.encode(body),
+  );
+  return btoa(String.fromCharCode(...new Uint8Array(mac)));
+}
+
+/**
+ * X-Line-Signature を検証する。
+ * 比較は crypto.subtle.verify に任せる（自前の文字列比較を書かない）。
+ */
+export async function verifySignature(
+  channelSecret: string,
+  rawBody: string,
+  signature: string | null | undefined,
+): Promise<boolean> {
+  if (!signature) return false;
+
+  let signatureBytes: Uint8Array<ArrayBuffer>;
+  try {
+    const binary = atob(signature);
+    signatureBytes = new Uint8Array(new ArrayBuffer(binary.length));
+    for (let i = 0; i < binary.length; i++) signatureBytes[i] = binary.charCodeAt(i);
+  } catch {
+    return false; // base64 として壊れている
+  }
+
+  return crypto.subtle.verify(
+    "HMAC",
+    await hmacKey(channelSecret),
+    signatureBytes,
+    encoder.encode(rawBody),
+  );
+}
+
+export interface ReserveCommand {
+  /** 予約するコマ（slotKey 形式） */
+  slot: string;
+  /** 応答メッセージ用のトークン（応答は無料枠を消費しない） */
+  replyToken: string;
+}
+
+const PREFIX = "reserve:";
+
+/**
+ * Webhook の本文から、自分が出した予約指示だけを取り出す。
+ * 自分以外の userId、postback 以外のイベント、想定外の data はすべて捨てる。
+ */
+export function extractReserveCommands(
+  body: unknown,
+  allowedUserId: string,
+): ReserveCommand[] {
+  const events = (body as { events?: unknown })?.events;
+  if (!Array.isArray(events)) return [];
+
+  const commands: ReserveCommand[] = [];
+  for (const event of events) {
+    if (event?.type !== "postback") continue;
+    if (event?.source?.userId !== allowedUserId) continue;
+
+    const data = event?.postback?.data;
+    if (typeof data !== "string" || !data.startsWith(PREFIX)) continue;
+
+    const slot = data.slice(PREFIX.length).trim();
+    if (!slot) continue;
+
+    commands.push({ slot, replyToken: String(event.replyToken ?? "") });
+  }
+  return commands;
+}

@@ -1,0 +1,4 @@
+# terraform.tfvars にコピーして使う（.gitignore 済み）。
+#
+#   cp terraform.tfvars.example terraform.tfvars
+project_id = "toshima-tennis"

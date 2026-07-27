@@ -12,6 +12,12 @@ export function extractToken(html: string): string {
   return input.getAttribute("value")!;
 }
 
+/** hidden 以外も含め、input の value を名前で取り出す。 */
+export function extractInputValue(html: string, name: string): string {
+  const input = parse(html).querySelector(`input[name="${name}"]`);
+  return input?.getAttribute("value") ?? "";
+}
+
 export type DailyStatus = "○" | "△" | "×" | "－";
 
 export interface DailyAvailability {

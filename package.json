@@ -11,5 +11,17 @@
   },
   "dependencies": {
     "node-html-parser": "^9.0.0"
+  },
+  "scripts": {
+    "poll": "bun run scripts/poll.ts",
+    "reserve": "bun run scripts/reserve-one.ts",
+    "probe": "bun run scripts/probe-reserve.ts",
+    "notify:test": "bun run scripts/notify-test.ts",
+    "typecheck": "tsc --noEmit",
+    "bootstrap": "terraform/bootstrap.sh",
+    "image": "terraform/build.sh",
+    "plan": "terraform -chdir=terraform plan",
+    "apply": "terraform -chdir=terraform apply",
+    "deploy": "terraform/build.sh && terraform -chdir=terraform apply"
   }
 }

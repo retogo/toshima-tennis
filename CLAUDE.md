@@ -1,106 +1,107 @@
+# CLAUDE.md
 
-Default to using Bun instead of Node.js.
+豊島区の公共施設予約システムを対象に、テニスコートの空き確認と予約を自動化する。
+構成・デプロイ手順は `README.md`、サイトの HTTP フロー仕様は `docs/site-flow.md`。
+ここには**それらに書いていない、作業中に踏み抜きやすい前提**だけを置く。
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## このリポジトリで最も重要なこと
 
-## APIs
+**予約は本物で、取り消しにコストが伴う。** 確定させると施設使用料 2,000 円の
+支払い義務が生じ、使用日の 1 週間前を過ぎた取消は窓口・電話のみでキャンセル料が
+かかる。動作確認で実際の予約を成立させないこと。
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+- 実サイトを触る検証は必ず `RESERVE_DRY_RUN=1` を付ける。申込確認画面の照合まで
+  実行し、確定 POST は送らない
+- `scripts/probe-reserve.ts` は既定で詳細申請画面までで止まる。申込確認画面まで
+  進めるのは `--confirm-screen` を明示したときだけ
+- 対象は公共システム。リクエスト間の待機（既定 1.5 秒）を短縮しない。
+  検証のための連打もしない
 
-## Testing
+## 対象サイトの癖（バグを生んだもの）
 
-Use `bun test` to run tests.
+**時間帯は時が 1 桁になる。** `9:00～11:00` のような表記なので、素朴な文字列
+ソートでは `15:00` が `9:00` より前に来る。この取り違えを 2 回起こしている
+（メール本文の並び順と、予約候補の選択順）。コマを並べるときは必ず
+`compareChronologically`（`src/notify.ts`）を使う。
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+**同じ値でも画面と内部表現で書式が違う。** 申込確認画面の照合はこの変換を
+挟んでいる（`src/confirmation.ts`）。
 
-test("hello world", () => {
-  expect(1).toBe(1);
-});
-```
+| 内部            | 画面表示                   |
+| --------------- | -------------------------- |
+| `2026-08-03`    | `2026/8/3`（ゼロ埋めなし） |
+| `courtNo: "01"` | `１面`（全角）             |
 
-## Frontend
+**空き状況の既定は 2 週間表示。** そのままだと土日が 4 日しか入らず、
+予約可能な土日を取りこぼす。`selectFacility` は `hyouji` postback で
+1ヶ月に広げてから読んでいる（30 日 / 土日 8 日）。施設選択の POST に
+`radioPeriod` を混ぜても効かない点に注意。
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+**施設・室場コードは固定値。** 総合体育場 `116005`、庭球場の室場コード `00502`、
+使用目的は `404`=テニス / `405`=ソフトテニス。
 
-Server:
+## LINE Messaging API の癖
 
-```ts#index.ts
-import index from "./index.html"
+**LINE Notify は 2025-03-31 に終了している。** 代替は公式アカウント
+（Messaging API）の push。ネット上には Notify 前提の記事が多く残っているので
+参照しないこと。
 
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
+- **postback の `label` は 20 文字まで。** コマ名（`2026-08-08 第1面 9:00～11:00`）は
+  入らない。本文テキストに出し、ボタンは「予約」の一語にしてある
+- **push は無料枠 月 200 通で、超過分は課金ではなく送信不可**になる。通知を増やす
+  変更をするときは通数を意識する。応答メッセージ（reply）は無料枠を消費しない
+- 公式アカウントは誰でも友だち追加できる。webhook では**署名検証に加えて
+  送信者 userId の照合が必須**。これが無いと第三者が予約を叩ける
+- ユーザー ID は `U` で始まる 33 文字。普段の LINE ID とは別物
+- Terraform provider は公式・コミュニティとも存在しない
 
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
+## GCP / Terraform の癖
 
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
+**Terraform は `CLOUDSDK_CONFIG` を見ない。** gcloud 自身は切り替わるが、
+Terraform（Go の認証ライブラリ）は `~/.config/gcloud` の ADC を直接読む。
+別アカウントで動いて権限エラーになる。`GOOGLE_APPLICATION_CREDENTIALS` を
+明示すること（`terraform/.envrc.example`）。
 
-With the following `frontend.tsx`:
+**サービスアカウントの `account_id` は 30 文字まで。** リソース名を連結すると
+すぐ超える。`var.name_prefix`（既定 `toshima`）を使う。
 
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
+**Cloud Scheduler は `time_zone` を指定できる。** cron を UTC に換算しない。
 
-// import .css files directly and it works
-import './index.css';
+## 設計上の約束（変更するときは理由を確認すること）
 
-const root = createRoot(document.body);
+**webhook に予約システムの認証情報を置かない。** 公開エンドポイントなので、
+破られても予約システムには入れない構成にしてある。webhook は Cloud Run Job を
+起動するだけで利用者番号もパスワードも知らない。
 
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
+**秘密情報の値を Terraform で管理しない。** `google_secret_manager_secret_version`
+を使うと state に平文が残る。入れ物だけ作り、値は `gcloud secrets versions add`。
 
-root.render(<Frontend />);
-```
+**予約 Job は `max_retries = 0`。** 不可逆な操作を自動で再試行させない。
 
-Then, run index.ts
+**通知は希望条件に一致するコマだけを見る**（`src/notifiable.ts`）。全コマを
+対象にすると、興味のない曜日・時間帯の増減で通知が鳴る。実測で空き 13 件が
+すべて平日、希望条件の土日は 0 件という状態が起きていた。
 
-```sh
-bun --hot ./index.ts
-```
+**上限は 2 段で効かせる。** `maxPerRun`（1 回の実行）と `maxPerMonth`（暦月）。
+LINE のボタン経由は選択ロジックを通らないため、`scripts/reserve-one.ts` 側でも
+月上限を確認している。
 
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+## 開発
+
+Bun を使う。`node` / `npm` / `npx` / `jest` は使わない。
+
+**操作は `package.json` の script に寄せてある。** ファイルパスを直接叩かず
+`bun run poll` のように呼ぶ。Terraform も `bun run plan` / `bun run apply` で
+統一しており、引数はそのまま渡る。一覧は README を参照。
+
+- テスト `bun test` / 型検査 `bun run typecheck` / 依存 `bun install`
+- `.env` は Bun が自動で読む。`dotenv` を入れない
+- HTTP サーバーは `Bun.serve()`。`express` を使わない
+- ファイル読み書きは `Bun.file` を優先する
+
+外部 API を叩く関数は `fetchFn` を引数で受け取れるようにし、テストでは
+スタブを渡す（`src/line.ts` / `src/state.ts` / `src/runjob.ts` の形に倣う）。
+実サイトや実 API にアクセスするテストは書かない。
+
+例外メッセージに認証情報を含めない。Cloud Run と Actions のログは
+第三者に読まれうる前提で書く。この方針はテストで固定してある。

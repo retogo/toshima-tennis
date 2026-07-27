@@ -27,8 +27,24 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
+# ポーリング実行時に生成される一時ファイル
+.state
+scripts/notify-body.md
+
 # IntelliJ based IDEs
 .idea
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# 通知生成時の一時ファイル
+scripts/notify-messages.json
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+image.auto.tfvars
+.envrc

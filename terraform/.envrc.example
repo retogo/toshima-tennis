@@ -1,0 +1,8 @@
+# direnv 用。terraform/ に入ったときだけ gcloud を分離する。
+#
+#   cp .envrc.example .envrc && direnv allow
+#
+# CLOUDSDK_CONFIG は gcloud にしか効かない。Terraform は Go の認証ライブラリを
+# 使っており ~/.config/gcloud の ADC を直接読むため、明示的に指す必要がある。
+export CLOUDSDK_CONFIG="$HOME/.config/gcloud-toshima"
+export GOOGLE_APPLICATION_CREDENTIALS="$CLOUDSDK_CONFIG/application_default_credentials.json"
