@@ -109,6 +109,14 @@ describe("applySettings", () => {
     expect(base.wishlist.wishes).toEqual([{ daysOfWeek: [0, 6] }]);
   });
 
+  test("時間帯が空なら絞り込まない（全部が対象）", () => {
+    // 画面に「指定なし（全部）」と出しているので、挙動もそれに合わせる。
+    // ここを「何にも一致しない」にすると、全部オフのつもりが無い状態で
+    // 静かに予約も通知も止まる。
+    const applied = applySettings(base, { timeRanges: [] });
+    expect(applied.wishlist.wishes).toEqual([{ daysOfWeek: [0, 6] }]);
+  });
+
   test("曜日が空なら何にも一致しない条件になる", () => {
     // 「全部オフ＝何も予約しない」。曜日を省略した状態（＝全曜日）と混同しない
     const applied = applySettings(base, { daysOfWeek: [] });

@@ -99,6 +99,14 @@ export function serializeSettings(settings: RuntimeSettings): string {
  * **曜日と時間帯は 1 つの希望条件にまとめる。** LINE から編集できるのは
  * 「曜日の集合 × 時間帯の集合」1 組だけなので、複数の希望条件を持っていた場合は
  * この 1 組に置き換わる。指定していない側は元の条件を引き継ぐ。
+ *
+ * **空配列の意味は曜日と時間帯で違う。** 画面の表示に合わせている。
+ *   曜日が空   … 何にも一致しない（＝予約しない）。画面も「なし（予約しません）」
+ *   時間帯が空 … 絞り込まない（＝全部が対象）。画面も「指定なし（全部）」
+ *
+ * 時間帯の空を「一致しない」にすると、時間帯を入れて外しただけで予約も通知も
+ * 静かに止まる。実際にそうなり、画面は「全部」と出しているのに何も拾わない状態が
+ * 起きた。`matches` は空配列を真として扱うため、キーごと落とす必要がある。
  */
 export function applySettings(
   config: ReserveConfig,
@@ -107,6 +115,9 @@ export function applySettings(
   const first = config.wishlist.wishes[0] ?? {};
   const editsWish =
     settings.daysOfWeek !== undefined || settings.timeRanges !== undefined;
+
+  const daysOfWeek = settings.daysOfWeek ?? first.daysOfWeek;
+  const timeRanges = settings.timeRanges ?? first.timeRanges;
 
   return {
     ...config,
@@ -117,12 +128,9 @@ export function applySettings(
       wishes: editsWish
         ? [
             {
-              ...(settings.daysOfWeek ?? first.daysOfWeek
-                ? { daysOfWeek: settings.daysOfWeek ?? first.daysOfWeek }
-                : {}),
-              ...(settings.timeRanges ?? first.timeRanges
-                ? { timeRanges: settings.timeRanges ?? first.timeRanges }
-                : {}),
+              ...(daysOfWeek ? { daysOfWeek } : {}),
+              // 空なら絞り込まない。キーを残すと「一致しない」になってしまう
+              ...(timeRanges && timeRanges.length > 0 ? { timeRanges } : {}),
             },
           ]
         : config.wishlist.wishes,
