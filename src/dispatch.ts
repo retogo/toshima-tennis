@@ -41,6 +41,12 @@ export interface DispatchContext {
   /** 取消 Job の名前（プロジェクト・リージョンは jobTarget と同じ） */
   cancelJob: string;
   channelAccessToken: string;
+  /**
+   * mode.txt が無いときに表示するモード。**poll と同じ既定値を渡すこと。**
+   * ここを決め打ちにすると、poll は reserve.json の値で動いているのに
+   * メニューは別のモードを表示する、という食い違いが起きる。
+   */
+  defaultMode: ReserveMode;
 }
 
 export interface DispatchOptions {
@@ -86,9 +92,12 @@ async function approve(
   return `承認しました。\n${slot}\n\nこの予約は自動取消の対象から外れます。`;
 }
 
-/** 保存されているモード。無ければ既定（reserve.json 側の初期値と同じ）。 */
-async function currentMode(state: StateStore): Promise<ReserveMode> {
-  return parseModeOverride(await state.read(MODE_KEY)) ?? "notify";
+/** 保存されているモード。無ければ呼び出し側が渡した既定（reserve.json の値）。 */
+async function currentMode(
+  state: StateStore,
+  defaultMode: ReserveMode,
+): Promise<ReserveMode> {
+  return parseModeOverride(await state.read(MODE_KEY)) ?? defaultMode;
 }
 
 /**
@@ -106,13 +115,12 @@ async function switchMode(
 
   const mode = parseModeOverride(value);
   if (!mode) {
-    return `不明なモードです（${value}）。notify / approve / auto のいずれかを選んでください。`;
+    return `不明なモードです（${value}）。approve / auto のいずれかを選んでください。`;
   }
 
   await state.write(MODE_KEY, mode);
 
   const description: Record<ReserveMode, string> = {
-    notify: "空きを通知するだけで、予約はしません。",
     approve: "候補をボタンで通知します。押すとその場で予約が確定します。",
     auto:
       "条件に合う空きを見つけたら自動で予約します。" +
@@ -129,7 +137,10 @@ async function switchMode(
  * poll が置いたスナップショットを読む。数分古くなるが、取消期限の判定は日付単位
  * なので実害がない。
  */
-async function status(state: StateStore | undefined): Promise<{
+async function status(
+  state: StateStore | undefined,
+  defaultMode: ReserveMode,
+): Promise<{
   text: string;
   rows: StatusRow[];
 }> {
@@ -137,7 +148,7 @@ async function status(state: StateStore | undefined): Promise<{
 
   const snapshot = parseSnapshot(await state.read(SNAPSHOT_KEY));
   const tracked = parseTracked(await state.read(TRACKED_KEY));
-  const mode = await currentMode(state);
+  const mode = await currentMode(state, defaultMode);
 
   const text = formatStatus(
     {
@@ -188,9 +199,11 @@ export async function dispatchCommands(
       } else if (command.action === "mode") {
         text = await switchMode(command.slot, options.state);
       } else if (command.action === "menu") {
-        messages = [buildMenuMessage(await currentMode(options.state!))];
+        messages = [
+          buildMenuMessage(await currentMode(options.state!, context.defaultMode)),
+        ];
       } else {
-        const { text: body, rows } = await status(options.state);
+        const { text: body, rows } = await status(options.state, context.defaultMode);
         messages = [buildStatusMessage(body, rows)];
       }
     } catch (e) {

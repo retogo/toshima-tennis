@@ -7,10 +7,9 @@
  * 空き通知は「希望条件に一致するコマが前回から変わったとき」だけ送る。
  * 全コマを見ると興味のない曜日・時間帯の増減でも鳴ってしまうため。
  *
- * mode（reserve.json）で挙動が変わる。
- *   notify  … 通知のみ
+ * mode で挙動が変わる（GCS の mode.txt が reserve.json より優先）。
  *   approve … 候補をボタン付きで通知し、押されたら reserve Job が動く
- *   auto    … その場で予約を確定する
+ *   auto    … その場で予約を確定し、承認されなければ期限前に取り消す
  */
 import { ToshimaClient } from "../src/client";
 import { parseConfig, type ReserveConfig } from "../src/config";

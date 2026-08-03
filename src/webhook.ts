@@ -67,7 +67,7 @@ export async function verifySignature(
  *   approve … 自動予約した予約を承認する（自動取消の対象から外す）
  *   cancel  … 予約を取り消す
  *   status  … 予約一覧と取消期限を表示する
- *   mode    … 動作モードを切り替える（slot に notify / approve / auto が入る）
+ *   mode    … 動作モードを切り替える（slot に approve / auto が入る）
  *   menu    … 操作メニューを表示する（テキストを受け取ったとき）
  */
 export type CommandAction =

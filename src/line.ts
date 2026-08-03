@@ -153,9 +153,8 @@ export function buildReservedMessage(
 
 /** 動作モードのボタンに出す説明。auto は費用が動くことを明示する。 */
 const MODE_LABELS: { value: string; label: string; note: string }[] = [
-  { value: "notify", label: "通知のみ", note: "予約しない" },
-  { value: "approve", label: "承認して予約", note: "ボタンを押したら予約" },
-  { value: "auto", label: "自動予約", note: "条件に合えば自動で予約" },
+  { value: "approve", label: "押したら予約", note: "空きを通知し、押して初めて予約" },
+  { value: "auto", label: "自動で予約", note: "条件に合えば予約し、未承認なら取消" },
 ];
 
 /**

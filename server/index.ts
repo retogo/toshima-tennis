@@ -13,6 +13,7 @@
  * webhook 側に置かずに済ませるための分担。webhook は Job を起動するだけで、
  * 利用者番号もパスワードも知らない。
  */
+import { parseConfig } from "../src/config";
 import { dispatchCommands } from "../src/dispatch";
 import { stateStoreFromEnv } from "../src/state";
 import { extractCommands, verifySignature } from "../src/webhook";
@@ -32,6 +33,13 @@ const jobTarget = {
   job: required("RESERVE_JOB"),
 };
 const cancelJob = required("CANCEL_JOB");
+/**
+ * mode.txt が無いときの既定モード。poll と同じ値を出すため reserve.json から読む。
+ * イメージに同梱されている（Dockerfile が COPY している）。
+ */
+const defaultMode = parseConfig(
+  await Bun.file(process.env.RESERVE_CONFIG ?? "reserve.json").text(),
+).mode;
 /** 承認の記録先。予約システムの認証情報とは別で、webhook でも書き換える。 */
 const state = stateStoreFromEnv();
 const port = Number(process.env.PORT ?? 8080);
@@ -67,7 +75,7 @@ Bun.serve({
         // Job 起動は HTTP 1 回なので待っても応答は遅くならない。
         await dispatchCommands(
           commands,
-          { jobTarget, cancelJob, channelAccessToken },
+          { jobTarget, cancelJob, channelAccessToken, defaultMode },
           { state },
         );
 

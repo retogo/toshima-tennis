@@ -11,6 +11,7 @@ const context = {
   },
   cancelJob: "toshima-cancel",
   channelAccessToken: "CHANNEL_TOKEN",
+  defaultMode: "approve" as const,
 };
 
 const SLOT = "2026-08-24 第4面 9:00～11:00";
@@ -297,7 +298,7 @@ describe("dispatchCommands: メニュー・状況・モード", () => {
     );
 
     expect(current("mode.txt")).toBe("");
-    expect(replyFlex(calls)[0]).toContain("notify");
+    expect(replyFlex(calls)[0]).toContain("approve");
   });
 
   test("status はスナップショットから応答を作る（Job を起動しない）", async () => {

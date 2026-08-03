@@ -10,8 +10,8 @@ const minimal = {
 };
 
 describe("parseConfig: mode", () => {
-  test("既定は notify（予約せず通知だけ。事故を起こさない側に倒す）", () => {
-    expect(parseConfig(JSON.stringify(minimal)).mode).toBe("notify");
+  test("既定は approve（人が押して初めて予約する側に倒す）", () => {
+    expect(parseConfig(JSON.stringify(minimal)).mode).toBe("approve");
   });
 
   test("approve / auto を指定できる", () => {

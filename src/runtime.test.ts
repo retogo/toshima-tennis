@@ -22,7 +22,7 @@ function reservation(overrides: Partial<Reservation> = {}): Reservation {
 describe("parseModeOverride", () => {
   test("保存されている mode を読む", () => {
     expect(parseModeOverride("auto")).toBe("auto");
-    expect(parseModeOverride("notify")).toBe("notify");
+    expect(parseModeOverride("approve")).toBe("approve");
   });
 
   test("前後の空白を無視する", () => {
@@ -37,6 +37,11 @@ describe("parseModeOverride", () => {
     // 壊れた値で例外にすると poll が止まる。既定に落とすほうが安全
     expect(parseModeOverride("AUTO")).toBeUndefined();
     expect(parseModeOverride("garbage")).toBeUndefined();
+  });
+
+  test("廃止した notify は受け付けない", () => {
+    // approve との違いがボタンの有無だけで、モードとして分ける意味が無かった
+    expect(parseModeOverride("notify")).toBeUndefined();
   });
 });
 

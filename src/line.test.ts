@@ -164,7 +164,6 @@ describe("buildMenuMessage", () => {
   test("状況表示とモード切替のボタンを出す", () => {
     const json = JSON.stringify(buildMenuMessage("auto"));
     expect(json).toContain("status:");
-    expect(json).toContain("mode:notify");
     expect(json).toContain("mode:approve");
     expect(json).toContain("mode:auto");
   });
@@ -180,8 +179,12 @@ describe("buildMenuMessage", () => {
     }
   });
 
-  test("auto は費用が動くことが分かる表記にする", () => {
-    expect(JSON.stringify(buildMenuMessage("notify"))).toContain("自動予約");
+  test("auto は自動で予約されることが分かる表記にする", () => {
+    expect(JSON.stringify(buildMenuMessage("approve"))).toContain("自動で予約");
+  });
+
+  test("廃止した notify のボタンは出さない", () => {
+    expect(JSON.stringify(buildMenuMessage("approve"))).not.toContain("mode:notify");
   });
 });
 

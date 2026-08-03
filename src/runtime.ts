@@ -19,7 +19,7 @@ export const MODE_KEY = "mode.txt";
 /** 予約一覧スナップショットの置き場 */
 export const SNAPSHOT_KEY = "reservations.json";
 
-const MODES: ReserveMode[] = ["notify", "approve", "auto"];
+const MODES: ReserveMode[] = ["approve", "auto"];
 
 /**
  * 保存されている動作モードを読む。

@@ -136,6 +136,13 @@ await し切る**。`void (async () => …)()` を書かない。
 対象にすると、興味のない曜日・時間帯の増減で通知が鳴る。実測で空き 13 件が
 すべて平日、希望条件の土日は 0 件という状態が起きていた。
 
+**動作モードは approve / auto の 2 つ。** 以前あった `notify` は廃止した。`approve`
+との違いがボタンの有無しかなく、通知に出るコマも同じだった。既定は `approve`。
+
+**`mode.txt` が無いときの既定値は poll と webhook で揃える。** 決め打ちにすると、
+poll は `reserve.json` の値で動いているのにメニューは別のモードを表示する食い違いが
+起きる。webhook は `reserve.json` を読んで `DispatchContext.defaultMode` に渡す。
+
 **動作モードは GCS の上書きが優先される。** `reserve.json` はイメージに焼き込まれて
 いるため、LINE から切り替えるには可変の置き場が必要。poll は `mode.txt` があれば
 それを使う。**`reserve.json` を書き換えても上書きが残っていれば効かない**ので、

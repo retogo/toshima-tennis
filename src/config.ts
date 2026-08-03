@@ -10,13 +10,15 @@ import type { Wish, Wishlist } from "./wishlist";
 
 /**
  * 動作モード。
- *   notify  … 予約せず空き通知だけ（既定。事故を起こさない側に倒す）
- *   approve … 対象を見つけたら承認待ちにし、人間が承認して初めて予約する
- *   auto    … 対象を見つけたらその場で予約を確定する
+ *   approve … 候補をボタンで通知し、人が押して初めて予約する（既定）
+ *   auto    … 条件に一致したらその場で予約し、承認しなければ期限前に取り消す
+ *
+ * 以前あった notify（通知だけでボタンを出さない）は廃止した。approve との違いが
+ * ボタンの有無しかなく、モードとして分ける意味が無かった。
  */
-export type ReserveMode = "notify" | "approve" | "auto";
+export type ReserveMode = "approve" | "auto";
 
-const MODES: ReserveMode[] = ["notify", "approve", "auto"];
+const MODES: ReserveMode[] = ["approve", "auto"];
 
 export interface ReserveConfig {
   mode: ReserveMode;
@@ -51,7 +53,7 @@ function parseCancelBufferDays(value: unknown): number {
 }
 
 function parseMode(value: unknown): ReserveMode {
-  if (value === undefined) return "notify";
+  if (value === undefined) return "approve";
   if (typeof value !== "string" || !MODES.includes(value as ReserveMode)) {
     throw new Error(`mode には ${MODES.join(" / ")} のいずれかを指定してください`);
   }

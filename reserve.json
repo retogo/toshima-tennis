@@ -1,5 +1,5 @@
 {
-  "_comment": "自動予約の設定。mode=auto は条件一致でその場で予約し、承認しないまま取消期限の cancelBufferDays 日前になると自動で取り消す。approve は候補をボタンで通知し押されて初めて予約する。timeRanges を省略すると全時間帯が対象。",
+  "_comment": "自動予約の設定。mode=auto は条件一致でその場で予約し、承認しないまま取消期限の cancelBufferDays 日前になると自動で取り消す。approve は候補をボタンで通知し押されて初めて予約する。mode は LINE から切り替えられ、その値（GCS の mode.txt）がここより優先される。",
   "mode": "approve",
   "wishes": [
     {
