@@ -148,12 +148,17 @@ resource "google_cloud_run_v2_job" "reserve" {
   depends_on = [google_secret_manager_secret_iam_member.job_accessor]
 }
 
-# webhook から reserve Job を起動できるようにする
+# webhook から reserve Job を起動できるようにする。
+#
+# **roles/run.invoker では起動できない。** webhook は予約するコマを RESERVE_SLOT の
+# 環境変数上書きとして渡すため run.jobs.runWithOverrides が要るが、run.invoker が
+# 持つのは run.jobs.run までで、403 PERMISSION_DENIED になる。
+# jobsExecutorWithOverrides は必要な 3 権限だけを持つ（run.developer は広すぎる）。
 resource "google_cloud_run_v2_job_iam_member" "webhook_runs_reserve" {
   project  = google_cloud_run_v2_job.reserve.project
   location = google_cloud_run_v2_job.reserve.location
   name     = google_cloud_run_v2_job.reserve.name
-  role     = "roles/run.invoker"
+  role     = "roles/run.jobsExecutorWithOverrides"
   member   = "serviceAccount:${google_service_account.webhook.email}"
 }
 

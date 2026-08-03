@@ -71,6 +71,13 @@ Terraform（Go の認証ライブラリ）は `~/.config/gcloud` の ADC を直�
 
 **Cloud Scheduler は `time_zone` を指定できる。** cron を UTC に換算しない。
 
+**環境変数を上書きして Job を起動するには `roles/run.invoker` では足りない。**
+`run.invoker` が持つのは `run.jobs.run` まで。overrides 付きの起動には
+`run.jobs.runWithOverrides` が要り、無いと 403 PERMISSION_DENIED になる。
+webhook は `RESERVE_SLOT` を overrides で渡すのでこれに該当する。
+`roles/run.jobsExecutorWithOverrides` を使う（`run.developer` は広すぎる）。
+一方 Cloud Scheduler → poll は overrides を使わないので `run.invoker` のままでよい。
+
 **`cpu_idle = true` の Cloud Run はレスポンス後の処理を走らせない。** webhook は
 これで動かしているため、200 を返してから投げっぱなしにした非同期処理には CPU が
 割り当てられず、ログに成否すら残らないまま終わる。実際に予約ボタンを押しても
