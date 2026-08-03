@@ -151,13 +151,15 @@ describe("extractCommands", () => {
     expect(extractCommands(body, ME)).toEqual([]);
   });
 
-  test("postback 以外は捨てる", () => {
+  test("テキストの中身は操作として解釈しない", () => {
+    // 「cancel:x」と打っただけで取消が走ってはいけない。テキストは
+    // メニュー表示のきっかけとしてのみ扱う。
     const body = {
       events: [
         { type: "message", source: { userId: ME }, message: { type: "text", text: "cancel:x" } },
       ],
     };
-    expect(extractCommands(body, ME)).toEqual([]);
+    expect(extractCommands(body, ME).map((c) => c.action)).toEqual(["menu"]);
   });
 
   test("events が壊れていても例外にしない", () => {
@@ -168,5 +170,76 @@ describe("extractCommands", () => {
   test("replyToken を持ち回る", () => {
     const body = { events: [postbackEvent(ME, "approve:2026-08-24 第4面 9:00～11:00")] };
     expect(extractCommands(body, ME)[0]!.replyToken).toBe("rt-1");
+  });
+});
+
+describe("extractCommands: メニューと状況", () => {
+  test("status / mode を取り出す", () => {
+    const body = {
+      events: [postbackEvent(ME, "status:"), postbackEvent(ME, "mode:auto")],
+    };
+    expect(extractCommands(body, ME).map((c) => c.action)).toEqual([
+      "status",
+      "mode",
+    ]);
+  });
+
+  test("status は対象コマを要求しない", () => {
+    const body = { events: [postbackEvent(ME, "status:")] };
+    expect(extractCommands(body, ME)[0]!.slot).toBe("");
+  });
+
+  test("mode は値を slot に載せる", () => {
+    const body = { events: [postbackEvent(ME, "mode:notify")] };
+    expect(extractCommands(body, ME)[0]!.slot).toBe("notify");
+  });
+
+  test("テキストメッセージはメニュー表示として扱う", () => {
+    const body = {
+      events: [
+        {
+          type: "message",
+          replyToken: "rt-1",
+          source: { type: "user", userId: ME },
+          message: { type: "text", text: "なんでもいい" },
+        },
+      ],
+    };
+    expect(extractCommands(body, ME).map((c) => c.action)).toEqual(["menu"]);
+  });
+
+  test("他人のテキストは無視する", () => {
+    const body = {
+      events: [
+        {
+          type: "message",
+          replyToken: "rt-1",
+          source: { type: "user", userId: STRANGER },
+          message: { type: "text", text: "メニュー" },
+        },
+      ],
+    };
+    expect(extractCommands(body, ME)).toEqual([]);
+  });
+
+  test("テキスト以外のメッセージは無視する", () => {
+    const body = {
+      events: [
+        {
+          type: "message",
+          replyToken: "rt-1",
+          source: { type: "user", userId: ME },
+          message: { type: "sticker", stickerId: "1" },
+        },
+      ],
+    };
+    expect(extractCommands(body, ME)).toEqual([]);
+  });
+
+  test("予約や取消はコマが空なら無視する（menu / status とは違う）", () => {
+    const body = {
+      events: [postbackEvent(ME, "reserve:"), postbackEvent(ME, "cancel:")],
+    };
+    expect(extractCommands(body, ME)).toEqual([]);
   });
 });

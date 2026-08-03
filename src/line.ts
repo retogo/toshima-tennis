@@ -151,6 +151,128 @@ export function buildReservedMessage(
   };
 }
 
+/** 動作モードのボタンに出す説明。auto は費用が動くことを明示する。 */
+const MODE_LABELS: { value: string; label: string; note: string }[] = [
+  { value: "notify", label: "通知のみ", note: "予約しない" },
+  { value: "approve", label: "承認して予約", note: "ボタンを押したら予約" },
+  { value: "auto", label: "自動予約", note: "条件に合えば自動で予約" },
+];
+
+/**
+ * 操作メニュー。テキストを受け取ったときに応答で返す。
+ *
+ * postback は先にメッセージが無いと押せないので、ボタンを出すきっかけが必要。
+ * 応答（reply）は LINE の無料枠を消費しないため、何度出しても通数は増えない。
+ */
+export function buildMenuMessage(currentMode: string): FlexMessage {
+  return {
+    type: "flex",
+    altText: "操作メニュー",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: "操作メニュー", weight: "bold" },
+          {
+            type: "text",
+            text: `現在の動作モード: ${currentMode}`,
+            size: "sm",
+            wrap: true,
+          },
+          {
+            type: "button",
+            style: "primary",
+            height: "sm",
+            action: { type: "postback", label: "予約状況を見る", data: "status:" },
+          },
+          { type: "separator" },
+          { type: "text", text: "動作モードを変える", size: "sm", weight: "bold" },
+          ...MODE_LABELS.map((mode) => ({
+            type: "box",
+            layout: "horizontal",
+            alignItems: "center",
+            spacing: "sm",
+            contents: [
+              {
+                type: "text",
+                text: mode.value === currentMode ? `${mode.note}（現在）` : mode.note,
+                size: "xs",
+                color: "#888888",
+                wrap: true,
+                flex: 3,
+              },
+              {
+                type: "button",
+                style: mode.value === currentMode ? "secondary" : "link",
+                height: "sm",
+                flex: 2,
+                action: {
+                  type: "postback",
+                  label: mode.label,
+                  data: `mode:${mode.value}`,
+                },
+              },
+            ],
+          })),
+        ],
+      },
+    },
+  };
+}
+
+export interface StatusRow {
+  /** 取消ボタンに載せるコマ名（slotKey 形式） */
+  slot: string;
+  /** サイトが取消を受け付けるか。期限切れならボタンを出さない */
+  cancellable: boolean;
+}
+
+/**
+ * 予約状況。本文はそのまま載せ、取消できる予約にだけ取消ボタンを付ける。
+ *
+ * 期限切れの予約にボタンを出すと、押しても取り消せず紛らわしい。
+ */
+export function buildStatusMessage(text: string, rows: StatusRow[]): FlexMessage {
+  const buttons = rows
+    .filter((row) => row.cancellable)
+    .slice(0, MAX_BUTTONS)
+    .flatMap((row) => [
+      { type: "text", text: row.slot, size: "xs", wrap: true },
+      {
+        type: "button",
+        style: "secondary",
+        height: "sm",
+        action: { type: "postback", label: "取消", data: `cancel:${row.slot}` },
+      },
+    ]);
+
+  return {
+    type: "flex",
+    altText: "予約状況",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: "予約状況", weight: "bold" },
+          { type: "text", text, size: "sm", wrap: true },
+          ...(buttons.length > 0
+            ? [
+                { type: "separator" },
+                { type: "box", layout: "vertical", spacing: "sm", contents: buttons },
+              ]
+            : []),
+        ],
+      },
+    },
+  };
+}
+
 export async function pushMessage(
   channelAccessToken: string,
   to: string,
@@ -186,6 +308,19 @@ export async function replyMessage(
     { replyToken, messages: [{ type: "text", text }] },
     fetchFn,
   );
+}
+
+/**
+ * 任意のメッセージ（Flex 等）を応答で返す。
+ * **応答は無料枠（月 200 通）を消費しない**ため、メニューや状況表示はこちらで返す。
+ */
+export async function replyMessages(
+  channelAccessToken: string,
+  replyToken: string,
+  messages: unknown[],
+  fetchFn: typeof fetch = fetch,
+): Promise<void> {
+  return send(channelAccessToken, REPLY_ENDPOINT, { replyToken, messages }, fetchFn);
 }
 
 async function send(

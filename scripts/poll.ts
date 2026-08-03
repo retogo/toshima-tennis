@@ -31,8 +31,19 @@ import {
   slotKey,
   subjectFor,
 } from "../src/notify";
-import { parseReservations, reservationKey } from "../src/reservations";
+import {
+  parseReservations,
+  reservationKey,
+  type Reservation,
+} from "../src/reservations";
 import { reserveSlot } from "../src/reserve";
+import {
+  MODE_KEY,
+  SNAPSHOT_KEY,
+  parseModeOverride,
+  parseSnapshot,
+  serializeSnapshot,
+} from "../src/runtime";
 import { stateStoreFromEnv } from "../src/state";
 import {
   hasApprovalWindow,
@@ -105,38 +116,74 @@ async function fetchOpenSlots(
   return client.openTimeSlots(openDays.map((e) => e.checkdateValue));
 }
 
-const config = await loadConfig();
-const slots = await fetchOpenSlots(new ToshimaClient());
+const baseConfig = await loadConfig();
 
 /**
- * 予約済みのコマ。**サイトの予約一覧が真実の源。**
+ * 動作モードは GCS の上書きを優先する（LINE から切り替えられるようにするため）。
+ * `reserve.json` はイメージに焼き込まれていて、変えるには再デプロイが必要。
+ */
+const config: ReserveConfig | undefined = baseConfig && {
+  ...baseConfig,
+  mode: parseModeOverride(await state.read(MODE_KEY)) ?? baseConfig.mode,
+};
+if (config && config.mode !== baseConfig!.mode) {
+  console.log(`動作モードの上書きを適用: ${baseConfig!.mode} → ${config.mode}`);
+}
+
+const slots = await fetchOpenSlots(new ToshimaClient());
+
+/** キャッシュを取り直す間隔（auto 以外）。公共システムへのログインを増やさない。 */
+const SNAPSHOT_MAX_AGE_MS = 60 * 60 * 1000;
+
+/**
+ * 予約一覧を読む。**サイトの予約一覧が真実の源。**
  *
  * 状態ファイルはこのツールが取った分しか知らず、手動で取った予約を数え落とす。
  * 実際に記録されていない手動予約が 1 件あり、月上限が意図どおり効かない状態に
- * なっていた。auto モードでは月上限がそのまま支出の上限になるため、予約する前に
- * サイトを見る。
+ * なっていた。auto モードでは月上限がそのまま支出の上限になる。
  *
- * ログインが必要なので、認証情報を持つ auto モードのときだけ問い合わせる。
+ * 読んだ結果は GCS に置く。webhook は予約システムの認証情報を持たないため、
+ * LINE の状況表示はこのスナップショットを読んで応答する。
+ *
+ * auto はどうせ毎回ログインするので取り直す。それ以外はキャッシュが古いときだけに
+ * して、10 分ごとのログインを増やさない。
  */
-async function readReservedKeys(): Promise<string[]> {
-  if (config?.mode !== "auto") return [];
+async function loadReservations(): Promise<Reservation[] | undefined> {
+  if (!config) return undefined;
+
+  const cached = parseSnapshot(await state.read(SNAPSHOT_KEY));
+  const fresh =
+    cached !== undefined &&
+    Date.now() - new Date(cached.takenAt).getTime() < SNAPSHOT_MAX_AGE_MS;
+
+  if (config.mode !== "auto" && fresh) {
+    console.log(`\n=== 予約済み ${cached.reservations.length} 件（キャッシュ） ===`);
+    return cached.reservations;
+  }
 
   const client = new ToshimaClient();
   const credentials = loadCredentials();
   const menu = await client.loginFromTop(credentials.userId, credentials.password);
-  const list = await client.openReservations(menu);
-  const reservations = parseReservations(list);
+  const reservations = parseReservations(await client.openReservations(menu));
 
   console.log(`\n=== 予約済み ${reservations.length} 件（サイト） ===`);
   for (const r of reservations) {
-    console.log(
-      `  ${reservationKey(r)}${r.cancelValue ? "" : "（取消期限切れ）"}`,
-    );
+    console.log(`  ${reservationKey(r)}${r.cancelValue ? "" : "（取消期限切れ）"}`);
   }
-  return reservations.map(reservationKey);
+
+  await state.write(
+    SNAPSHOT_KEY,
+    serializeSnapshot({
+      takenAt: new Date().toISOString(),
+      reservations,
+      cancelBufferDays: config.cancelBufferDays,
+    }),
+  );
+  return reservations;
 }
 
-const alreadyReserved = await readReservedKeys();
+const reservations = await loadReservations();
+const alreadyReserved = (reservations ?? []).map(reservationKey);
 
 console.log(`\n=== 空きコマ ${slots.length} 件 ===`);
 console.log(buildSignature(slots) || "  なし");

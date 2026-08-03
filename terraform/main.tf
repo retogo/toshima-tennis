@@ -21,8 +21,15 @@ locals {
   # webhook は予約システムの認証情報を持たない（Job を起動するだけ）
   webhook_secrets = ["LINE_CHANNEL_SECRET", "LINE_CHANNEL_ACCESS_TOKEN", "LINE_TO"]
 
-  # poll は通知のみ。auto モードを使うときは TOSHIMA_* も要る
-  poll_secrets = ["LINE_CHANNEL_ACCESS_TOKEN", "LINE_TO"]
+  # poll も予約システムにログインする。auto モードでの予約に加え、月上限の判定と
+  # 予約一覧のキャッシュ（LINE の状況表示用）で予約一覧を読むため。
+  # ここが LINE_* だけだと auto に切り替えた瞬間に認証情報が無くて落ちる。
+  poll_secrets = [
+    "LINE_CHANNEL_ACCESS_TOKEN",
+    "LINE_TO",
+    "TOSHIMA_USER_ID",
+    "TOSHIMA_PASSWORD",
+  ]
 
   # reserve は実際に予約するので全部要る
   reserve_secrets = [

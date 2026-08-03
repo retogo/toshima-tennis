@@ -32,8 +32,11 @@ export interface ReserveConfig {
 /** 取消期限は使用日の 1 週間前。バッファはこれ未満でなければ意味がない。 */
 const CANCELLATION_WINDOW_DAYS = 7;
 
+/** cancelBufferDays の既定値。設定を読めない場面でも同じ値を使う。 */
+export const DEFAULT_CANCEL_BUFFER_DAYS = 2;
+
 function parseCancelBufferDays(value: unknown): number {
-  if (value === undefined) return 2;
+  if (value === undefined) return DEFAULT_CANCEL_BUFFER_DAYS;
   if (
     typeof value !== "number" ||
     !Number.isInteger(value) ||

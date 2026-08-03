@@ -35,19 +35,20 @@ function stubFetch(
   return { calls, fetchFn };
 }
 
-/** 承認の記録先。実際は GCS だが、テストではメモリに置く。 */
-function stubStore(initial = "") {
-  let value = initial;
+/** 状態の置き場。実際は GCS だが、テストではメモリに置く。 */
+function stubStore(initialTracked = "") {
+  const files = new Map<string, string>();
+  if (initialTracked) files.set("tracked.json", initialTracked);
   return {
     store: {
-      async read() {
-        return value;
+      async read(key: string) {
+        return files.get(key) ?? "";
       },
-      async write(_key: string, next: string) {
-        value = next;
+      async write(key: string, next: string) {
+        files.set(key, next);
       },
     },
-    current: () => value,
+    current: (key = "tracked.json") => files.get(key) ?? "",
   };
 }
 
@@ -226,5 +227,113 @@ describe("dispatchCommands: 失敗の扱い", () => {
     const { store } = stubStore();
     await dispatchCommands([], context, options(fetchFn, store));
     expect(calls).toEqual([]);
+  });
+});
+
+describe("dispatchCommands: メニュー・状況・モード", () => {
+  const replyFlex = (calls: Call[]) =>
+    calls
+      .filter((c) => isReply(c.url))
+      .map((c) => JSON.stringify((c.body as { messages: unknown[] }).messages));
+
+  test("menu は Job を起動せず、応答でメニューを返す", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore();
+    await dispatchCommands(
+      [{ action: "menu", slot: "", replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(jobNames(calls)).toEqual([]);
+    expect(replyFlex(calls)[0]).toContain("status:");
+  });
+
+  test("メニューには保存されている現在のモードを出す", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore();
+    await store.write("mode.txt", "auto");
+    await dispatchCommands(
+      [{ action: "menu", slot: "", replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(replyFlex(calls)[0]).toContain("auto");
+  });
+
+  test("mode は保存するだけで Job を起動しない", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store, current } = stubStore();
+    await dispatchCommands(
+      [{ action: "mode", slot: "auto", replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(jobNames(calls)).toEqual([]);
+    expect(current("mode.txt")).toBe("auto");
+  });
+
+  test("auto に切り替えたら費用が動くことを応答で伝える", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore();
+    await dispatchCommands(
+      [{ action: "mode", slot: "auto", replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(replyFlex(calls)[0]).toContain("自動で予約");
+  });
+
+  test("知らないモードは保存しない", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store, current } = stubStore();
+    await dispatchCommands(
+      [{ action: "mode", slot: "garbage", replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(current("mode.txt")).toBe("");
+    expect(replyFlex(calls)[0]).toContain("notify");
+  });
+
+  test("status はスナップショットから応答を作る（Job を起動しない）", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore();
+    await store.write(
+      "reservations.json",
+      JSON.stringify({
+        takenAt: "2026-08-03T09:00:00.000Z",
+        reservations: [
+          { date: "2026-08-24", timeRange: "9:00～11:00", feeYen: 2000, status: "本予約", cancelValue: "1" },
+        ],
+      }),
+    );
+
+    await dispatchCommands(
+      [{ action: "status", slot: "", replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(jobNames(calls)).toEqual([]);
+    const reply = replyFlex(calls)[0]!;
+    expect(reply).toContain("2026-08-24");
+    expect(reply).toContain("2026-08-17"); // 取消期限
+  });
+
+  test("スナップショットが無ければ、まだ取得できていないと伝える", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore();
+    await dispatchCommands(
+      [{ action: "status", slot: "", replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(replyFlex(calls)[0]).toContain("取得できていません");
   });
 });

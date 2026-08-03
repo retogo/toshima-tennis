@@ -62,14 +62,32 @@ export async function verifySignature(
 }
 
 /**
- * ボタンが表す操作。
+ * 操作の種類。
  *   reserve … 候補を予約する
  *   approve … 自動予約した予約を承認する（自動取消の対象から外す）
  *   cancel  … 予約を取り消す
+ *   status  … 予約一覧と取消期限を表示する
+ *   mode    … 動作モードを切り替える（slot に notify / approve / auto が入る）
+ *   menu    … 操作メニューを表示する（テキストを受け取ったとき）
  */
-export type CommandAction = "reserve" | "approve" | "cancel";
+export type CommandAction =
+  | "reserve"
+  | "approve"
+  | "cancel"
+  | "status"
+  | "mode"
+  | "menu";
 
-const ACTIONS: CommandAction[] = ["reserve", "approve", "cancel"];
+const ACTIONS: CommandAction[] = [
+  "reserve",
+  "approve",
+  "cancel",
+  "status",
+  "mode",
+];
+
+/** 対象のコマ（や値）を必要とする操作。status / menu は対象を持たない。 */
+const NEEDS_ARGUMENT: CommandAction[] = ["reserve", "approve", "cancel", "mode"];
 
 export interface Command {
   action: CommandAction;
@@ -101,8 +119,18 @@ export function extractCommands(
 
   const commands: Command[] = [];
   for (const event of events) {
-    if (event?.type !== "postback") continue;
     if (event?.source?.userId !== allowedUserId) continue;
+    const replyToken = String(event.replyToken ?? "");
+
+    // テキストを送られたら操作メニューを出す。ボタンを出すきっかけが要るため
+    // （postback は先にメッセージが無いと押せない）。文面は問わない。
+    if (event?.type === "message") {
+      if (event?.message?.type !== "text") continue;
+      commands.push({ action: "menu", slot: "", replyToken });
+      continue;
+    }
+
+    if (event?.type !== "postback") continue;
 
     const data = event?.postback?.data;
     if (typeof data !== "string") continue;
@@ -114,9 +142,9 @@ export function extractCommands(
     if (!ACTIONS.includes(action)) continue;
 
     const slot = data.slice(separator + 1).trim();
-    if (!slot) continue;
+    if (!slot && NEEDS_ARGUMENT.includes(action)) continue;
 
-    commands.push({ action, slot, replyToken: String(event.replyToken ?? "") });
+    commands.push({ action, slot, replyToken });
   }
   return commands;
 }

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildMenuMessage,
   buildReservedMessage,
+  buildStatusMessage,
   pushMessage,
   buildCandidateMessage,
   MAX_BUTTONS,
@@ -155,5 +157,52 @@ describe("buildReservedMessage", () => {
 
   test("altText に見出しを使う", () => {
     expect(buildReservedMessage("見出し", [SLOT], "2026-08-15").altText).toBe("見出し");
+  });
+});
+
+describe("buildMenuMessage", () => {
+  test("状況表示とモード切替のボタンを出す", () => {
+    const json = JSON.stringify(buildMenuMessage("auto"));
+    expect(json).toContain("status:");
+    expect(json).toContain("mode:notify");
+    expect(json).toContain("mode:approve");
+    expect(json).toContain("mode:auto");
+  });
+
+  test("現在のモードを本文に出す", () => {
+    expect(JSON.stringify(buildMenuMessage("approve"))).toContain("approve");
+  });
+
+  test("ボタンの label は 20 文字を超えない", () => {
+    const json = JSON.stringify(buildMenuMessage("auto"));
+    for (const m of json.matchAll(/"label":"([^"]*)"/g)) {
+      expect(m[1]!.length).toBeLessThanOrEqual(20);
+    }
+  });
+
+  test("auto は費用が動くことが分かる表記にする", () => {
+    expect(JSON.stringify(buildMenuMessage("notify"))).toContain("自動予約");
+  });
+});
+
+describe("buildStatusMessage", () => {
+  const text = "■ 動作モード: auto\n\n■ 予約 1 件";
+
+  test("本文をそのまま載せる", () => {
+    expect(JSON.stringify(buildStatusMessage(text, []))).toContain("動作モード");
+  });
+
+  test("取消できる予約には取消ボタンを付ける", () => {
+    const json = JSON.stringify(
+      buildStatusMessage(text, [{ slot: "2026-08-24 第1面 9:00～11:00", cancellable: true }]),
+    );
+    expect(json).toContain("cancel:2026-08-24 第1面 9:00～11:00");
+  });
+
+  test("取消できない予約にはボタンを付けない", () => {
+    const json = JSON.stringify(
+      buildStatusMessage(text, [{ slot: "2026-08-09 第1面 15:00～17:00", cancellable: false }]),
+    );
+    expect(json).not.toContain("cancel:2026-08-09");
   });
 });
