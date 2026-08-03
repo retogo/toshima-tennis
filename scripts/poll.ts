@@ -34,7 +34,12 @@ import {
 import { parseReservations, reservationKey } from "../src/reservations";
 import { reserveSlot } from "../src/reserve";
 import { stateStoreFromEnv } from "../src/state";
-import { parseTracked, serializeTracked, trackReservation } from "../src/tracked";
+import {
+  hasApprovalWindow,
+  parseTracked,
+  serializeTracked,
+  trackReservation,
+} from "../src/tracked";
 import { TRACKED_KEY } from "../src/dispatch";
 import { matchingSlots, selectSlotsToReserve } from "../src/wishlist";
 import type { TimeSlot } from "../src/parser";
@@ -156,8 +161,29 @@ if (config && slots.length > 0) {
     candidates = matchingSlots(slots, config.wishlist, alreadyReserved).map(slotKey);
     for (const key of candidates) console.log(`  候補: ${key}`);
   } else if (config.mode === "auto") {
-    const credentials = loadCredentials();
+    // 申込期間の開始（使用日の 7 日前）と取消期限（同じく 7 日前）が重なるため、
+    // 予約できるようになった直後のコマには承認の猶予が無い。自動で押さえると
+    // 承認する間もなく取り消される（最短の場合は取消期限が当日で、取り逃すと
+    // 二度と取り消せず費用が確定する）。猶予が無いコマは人に決めてもらう。
+    const withWindow: TimeSlot[] = [];
+    const tooSoon: TimeSlot[] = [];
     for (const slot of targets) {
+      (hasApprovalWindow(slot.date, today(), config.cancelBufferDays)
+        ? withWindow
+        : tooSoon
+      ).push(slot);
+    }
+
+    if (tooSoon.length > 0) {
+      // approve と同じ「予約」ボタンで通知する。取り消せないことは note に出す。
+      candidates = tooSoon.map(slotKey);
+      for (const key of candidates) {
+        console.log(`  承認の猶予が無いため自動予約しません（ボタンで通知）: ${key}`);
+      }
+    }
+
+    const credentials = loadCredentials();
+    for (const slot of withWindow) {
       // 申込完了後に別のコマを続けて予約できるかは未確認なので、
       // コマごとにセッションを取り直して確実に同じ手順を踏む。
       const client = new ToshimaClient();
@@ -202,21 +228,43 @@ if (decision.kind === "none") {
 
 const now = new Date();
 const subject = subjectFor(decision.kind);
+const buffer = config?.cancelBufferDays ?? 2;
 
-if (decision.kind === "pending") {
-  await pushMessages(lineToken, lineTo, [
-    buildCandidateMessage(subject, candidates, {
-      note: "ボタンを押すとその場で予約が確定します。取消は使用日の1週間前（同一曜日）まで。",
-    }),
-  ]);
-} else if (decision.kind === "reserved") {
+/**
+ * 1 回の push にまとめる。LINE の通数は宛先ごとに数えるので、メッセージを
+ * 分けて送ると無料枠（月 200 通）を余計に消費する。
+ */
+const messages: unknown[] = [];
+
+if (decision.kind === "reserved") {
   // 自動で取った予約は、承認しないと期限前に自動で取り消される。
   // 承認・取消のボタンと、いつ取り消されるかを一緒に出す。
-  const buffer = config?.cancelBufferDays ?? 2;
-  const cancelOn = cancelDay(reservedKeys[0]!, buffer);
-  await pushMessages(lineToken, lineTo, [
-    buildReservedMessage(subject, reservedKeys, cancelOn),
-  ]);
+  messages.push(
+    buildReservedMessage(subject, reservedKeys, cancelDay(reservedKeys[0]!, buffer)),
+  );
+}
+
+// 承認の猶予が無くて自動予約を見送ったコマ（auto）や、approve モードの候補。
+// 予約が成立した回にも候補が残ることがあるため、reserved と排他にしない。
+if (candidates.length > 0) {
+  messages.push(
+    buildCandidateMessage(
+      decision.kind === "reserved" ? "🎾 ほかに空きがあります" : subject,
+      candidates,
+      {
+        note:
+          config?.mode === "auto"
+            ? "使用日が近く、承認の猶予が取れないため自動では予約していません。" +
+              "押すと予約が確定し、取消期限（使用日の1週間前・同一曜日）を過ぎているか" +
+              "当日のため、ウェブから取り消せない可能性があります。"
+            : "ボタンを押すとその場で予約が確定します。取消は使用日の1週間前（同一曜日）まで。",
+      },
+    ),
+  );
+}
+
+if (messages.length > 0) {
+  await pushMessages(lineToken, lineTo, messages);
 } else {
   // gone は「なくなったコマ」を出すため、今回ではなく前回の署名から本文を作る
   const body =

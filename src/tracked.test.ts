@@ -3,6 +3,7 @@ import {
   approveTracked,
   dueForCancellation,
   forgetTracked,
+  hasApprovalWindow,
   parseTracked,
   serializeTracked,
   trackReservation,
@@ -132,5 +133,35 @@ describe("状態の型", () => {
   test("TrackedState は JSON でそのまま保存できる", () => {
     const state: TrackedState = trackReservation({}, SLOT, "2026-08-03");
     expect(() => JSON.stringify(state)).not.toThrow();
+  });
+});
+
+describe("hasApprovalWindow", () => {
+  // 申込期間は使用日の 7 日前に開き、取消期限も使用日の 7 日前。
+  // 両者が重なるため、近い日のコマには承認の猶予が無い。
+  test("自動取消の開始日が未来なら猶予あり", () => {
+    expect(hasApprovalWindow("2026-08-13", "2026-08-03", 2)).toBe(true);
+  });
+
+  test("自動取消の開始日が今日なら猶予なし（同日に取り消される）", () => {
+    expect(hasApprovalWindow("2026-08-12", "2026-08-03", 2)).toBe(false);
+  });
+
+  test("自動取消の開始日が過去なら猶予なし", () => {
+    expect(hasApprovalWindow("2026-08-11", "2026-08-03", 2)).toBe(false);
+  });
+
+  test("申込可能な最短（使用日が 7 日後）は猶予なし", () => {
+    // 取消期限が今日になるため、取り逃すと二度と取り消せない
+    expect(hasApprovalWindow("2026-08-10", "2026-08-03", 2)).toBe(false);
+  });
+
+  test("バッファを広げると必要な余裕も増える", () => {
+    expect(hasApprovalWindow("2026-08-13", "2026-08-03", 3)).toBe(false);
+    expect(hasApprovalWindow("2026-08-14", "2026-08-03", 3)).toBe(true);
+  });
+
+  test("十分先のコマは猶予あり", () => {
+    expect(hasApprovalWindow("2026-09-05", "2026-08-03", 2)).toBe(true);
   });
 });
