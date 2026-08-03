@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  リッチメニューの画像のもと。Chrome で 2500x843 で撮って PNG にする。
+
+  リッチメニューは「メニューの絵が描かれた画像」＋「その上に重ねる透明なタップ領域」
+  という作りなので、ボタンの見た目も文字もすべてここに描く必要がある。
+  タップ領域の座標は scripts/richmenu.ts が 3 等分で定義しているので、
+  ここの列の分割と必ず揃えること。
+-->
+<meta charset="utf-8" />
+<title>リッチメニュー</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 2500px;
+    height: 843px;
+    display: grid;
+    /* タップ領域と同じ 3 等分。ここを変えるなら richmenu.ts も変える */
+    grid-template-columns: repeat(3, 1fr);
+    font-family:
+      "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    background: #f7f8f8;
+  }
+
+  .cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    /* 区切りは枠線ではなく背景の隙間で見せる（枠線は縮小時に潰れる） */
+    border-right: 6px solid #f7f8f8;
+    background: #ffffff;
+  }
+
+  .cell:last-child {
+    border-right: none;
+  }
+
+  .icon {
+    font-size: 200px;
+    line-height: 1;
+  }
+
+  .label {
+    font-size: 104px;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.04em;
+  }
+
+  .note {
+    font-size: 62px;
+    color: #8a8a8a;
+  }
+
+  /* 予約状況は主目的なので少し目立たせる */
+  .primary {
+    background: #06c755;
+  }
+
+  .primary .label {
+    color: #ffffff;
+  }
+
+  .primary .note {
+    color: rgba(255, 255, 255, 0.85);
+  }
+</style>
+
+<div class="cell primary">
+  <div class="icon">🎾</div>
+  <div class="label">予約状況</div>
+  <div class="note">取消期限も表示</div>
+</div>
+
+<div class="cell">
+  <div class="icon">⚙️</div>
+  <div class="label">自動で予約</div>
+  <div class="note">承認しないと取消</div>
+</div>
+
+<div class="cell">
+  <div class="icon">✋</div>
+  <div class="label">押したら予約</div>
+  <div class="note">空きを通知</div>
+</div>

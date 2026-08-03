@@ -29,6 +29,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # ポーリング実行時に生成される一時ファイル
 .state
+
+# リッチメニューの生成画像
+.richmenu
 scripts/notify-body.md
 
 # IntelliJ based IDEs
