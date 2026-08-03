@@ -89,6 +89,19 @@ const ACTIONS: CommandAction[] = [
 /** 対象のコマ（や値）を必要とする操作。status / menu は対象を持たない。 */
 const NEEDS_ARGUMENT: CommandAction[] = ["reserve", "approve", "cancel", "mode"];
 
+/**
+ * テキストで受け付ける用語。
+ *
+ * **予約と取消はここに入れない。** 不可逆な操作をテキストで走らせると、誤送信や
+ * 引用・転送で事故る。コマを指定する操作は postback のボタンだけにしてある。
+ */
+const TEXT_COMMANDS: Record<string, { action: CommandAction; slot: string }> = {
+  メニュー: { action: "menu", slot: "" },
+  状況: { action: "status", slot: "" },
+  自動: { action: "mode", slot: "auto" },
+  手動: { action: "mode", slot: "approve" },
+};
+
 export interface Command {
   action: CommandAction;
   /** 対象のコマ（slotKey 形式） */
@@ -122,11 +135,12 @@ export function extractCommands(
     if (event?.source?.userId !== allowedUserId) continue;
     const replyToken = String(event.replyToken ?? "");
 
-    // テキストを送られたら操作メニューを出す。ボタンを出すきっかけが要るため
-    // （postback は先にメッセージが無いと押せない）。文面は問わない。
+    // テキストは決めた用語だけに反応する。メニューのボタンはこの用語を送信するので、
+    // 何を操作したかが会話に残る。関係ない発言では何も返さない。
     if (event?.type === "message") {
       if (event?.message?.type !== "text") continue;
-      commands.push({ action: "menu", slot: "", replyToken });
+      const command = TEXT_COMMANDS[String(event.message.text).trim()];
+      if (command) commands.push({ ...command, replyToken });
       continue;
     }
 

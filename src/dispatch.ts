@@ -85,11 +85,11 @@ async function approve(
   const tracked = parseTracked(await state.read(TRACKED_KEY));
   const updated = approveTracked(tracked, slot);
   if (updated === tracked) {
-    return `${slot}\n\n自動予約の記録に見つかりませんでした。手動で取った予約は承認の対象外です。`;
+    return `${slot}\n手動の予約なので承認は不要です。`;
   }
 
   await state.write(TRACKED_KEY, serializeTracked(updated));
-  return `承認しました。\n${slot}\n\nこの予約は自動取消の対象から外れます。`;
+  return `承認しました\n${slot}\n自動取消しません。`;
 }
 
 /** 保存されているモード。無ければ呼び出し側が渡した既定（reserve.json の値）。 */
@@ -114,20 +114,13 @@ async function switchMode(
   if (!state) throw new Error("モードの保存先が設定されていません");
 
   const mode = parseModeOverride(value);
-  if (!mode) {
-    return `不明なモードです（${value}）。approve / auto のいずれかを選んでください。`;
-  }
+  if (!mode) return `不明なモードです（${value}）`;
 
   await state.write(MODE_KEY, mode);
 
-  const description: Record<ReserveMode, string> = {
-    approve: "候補をボタンで通知します。押すとその場で予約が確定します。",
-    auto:
-      "条件に合う空きを見つけたら自動で予約します。" +
-      "予約後に承認しないと取消期限の前に自動で取り消します。" +
-      "使用日が近く承認の猶予が取れないコマは自動で予約せず、ボタンで通知します。",
-  };
-  return `動作モードを ${mode} にしました。\n\n${description[mode]}`;
+  return mode === "auto"
+    ? "自動で予約します。予約したら承認/取消のボタンを送ります。承認しないと期限前に取り消します。"
+    : "空きが出たらボタンを送ります。押すと予約します。";
 }
 
 /**
@@ -190,10 +183,7 @@ export async function dispatchCommands(
           options,
         );
         console.log(`${command.action} を起動しました: ${command.slot}`);
-        text =
-          command.action === "reserve"
-            ? `予約処理を開始しました。\n${command.slot}\n\n結果は改めて通知します。`
-            : `取消処理を開始しました。\n${command.slot}\n\n結果は改めて通知します。`;
+        text = `${command.action === "reserve" ? "予約" : "取消"}を開始しました\n${command.slot}\n結果はあとで送ります。`;
       } else if (command.action === "approve") {
         text = await approve(command.slot, options.state);
       } else if (command.action === "mode") {

@@ -67,12 +67,13 @@ describe("parseSnapshot / serializeSnapshot", () => {
 describe("formatStatus", () => {
   const at = new Date("2026-08-03T09:30:00Z"); // JST 18:30
 
-  test("現在のモードを出す", () => {
-    const text = formatStatus(
-      { mode: "auto", reservations: [], tracked: {}, cancelBufferDays: 2 },
-      at,
-    );
-    expect(text).toContain("auto");
+  test("現在のモードを人が読める言葉で出す", () => {
+    expect(
+      formatStatus({ mode: "auto", reservations: [], tracked: {}, cancelBufferDays: 2 }, at),
+    ).toContain("自動で予約");
+    expect(
+      formatStatus({ mode: "approve", reservations: [], tracked: {}, cancelBufferDays: 2 }, at),
+    ).toContain("押したら予約");
   });
 
   test("予約ごとに利用日・時間帯・使用料を出す", () => {
@@ -140,7 +141,13 @@ describe("formatStatus", () => {
 
   test("取得時刻を JST で出す（キャッシュの古さが分かるように）", () => {
     const text = formatStatus(
-      { mode: "auto", reservations: [], tracked: {}, cancelBufferDays: 2, takenAt: at },
+      {
+        mode: "auto",
+        reservations: [reservation()],
+        tracked: {},
+        cancelBufferDays: 2,
+        takenAt: at,
+      },
       at,
     );
     expect(text).toContain("2026-08-03 18:30 JST");

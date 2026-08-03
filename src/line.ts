@@ -55,6 +55,7 @@ export function buildCandidateMessage(
     altText: heading,
     contents: {
       type: "bubble",
+      size: "giga",
       body: {
         type: "box",
         layout: "vertical",
@@ -131,6 +132,7 @@ export function buildReservedMessage(
     altText: heading,
     contents: {
       type: "bubble",
+      size: "giga",
       body: {
         type: "box",
         layout: "vertical",
@@ -151,71 +153,60 @@ export function buildReservedMessage(
   };
 }
 
-/** 動作モードのボタンに出す説明。auto は費用が動くことを明示する。 */
-const MODE_LABELS: { value: string; label: string; note: string }[] = [
-  { value: "approve", label: "押したら予約", note: "空きを通知し、押して初めて予約" },
-  { value: "auto", label: "自動で予約", note: "条件に合えば予約し、未承認なら取消" },
-];
+/**
+ * LINE から送る操作の用語。ボタンを押すとこの文字列が送信され、本文に残る。
+ * postback と違って何を操作したかが会話に見えるようにするため。
+ */
+export const TERMS = {
+  menu: "メニュー",
+  status: "状況",
+  auto: "自動",
+  approve: "手動",
+} as const;
 
 /**
  * 操作メニュー。テキストを受け取ったときに応答で返す。
  *
- * postback は先にメッセージが無いと押せないので、ボタンを出すきっかけが必要。
+ * モードは 2 つしかないので、**今のモードを文字で出し、もう片方に変えるボタンを
+ * 1 つだけ置く**。選択中を装飾で示そうとすると分かりにくい。
+ *
  * 応答（reply）は LINE の無料枠を消費しないため、何度出しても通数は増えない。
  */
 export function buildMenuMessage(currentMode: string): FlexMessage {
+  const isAuto = currentMode === "auto";
   return {
     type: "flex",
-    altText: "操作メニュー",
+    altText: "メニュー",
     contents: {
       type: "bubble",
+      size: "giga",
       body: {
         type: "box",
         layout: "vertical",
         spacing: "md",
         contents: [
-          { type: "text", text: "操作メニュー", weight: "bold" },
           {
             type: "text",
-            text: `現在の動作モード: ${currentMode}`,
-            size: "sm",
+            text: isAuto ? "いまは自動で予約します" : "いまは押したら予約します",
+            weight: "bold",
             wrap: true,
           },
           {
             type: "button",
             style: "primary",
             height: "sm",
-            action: { type: "postback", label: "予約状況を見る", data: "status:" },
+            action: { type: "message", label: "予約状況", text: TERMS.status },
           },
-          { type: "separator" },
-          { type: "text", text: "動作モードを変える", size: "sm", weight: "bold" },
-          ...MODE_LABELS.map((mode) => ({
-            type: "box",
-            layout: "horizontal",
-            alignItems: "center",
-            spacing: "sm",
-            contents: [
-              {
-                type: "text",
-                text: mode.value === currentMode ? `${mode.note}（現在）` : mode.note,
-                size: "xs",
-                color: "#888888",
-                wrap: true,
-                flex: 3,
-              },
-              {
-                type: "button",
-                style: mode.value === currentMode ? "secondary" : "link",
-                height: "sm",
-                flex: 2,
-                action: {
-                  type: "postback",
-                  label: mode.label,
-                  data: `mode:${mode.value}`,
-                },
-              },
-            ],
-          })),
+          {
+            type: "button",
+            style: "secondary",
+            height: "sm",
+            action: {
+              type: "message",
+              label: isAuto ? "押したら予約に変える" : "自動で予約に変える",
+              text: isAuto ? TERMS.approve : TERMS.auto,
+            },
+          },
         ],
       },
     },
@@ -253,6 +244,7 @@ export function buildStatusMessage(text: string, rows: StatusRow[]): FlexMessage
     altText: "予約状況",
     contents: {
       type: "bubble",
+      size: "giga",
       body: {
         type: "box",
         layout: "vertical",

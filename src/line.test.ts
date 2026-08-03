@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  TERMS,
   buildMenuMessage,
   buildReservedMessage,
   buildStatusMessage,
@@ -161,15 +162,29 @@ describe("buildReservedMessage", () => {
 });
 
 describe("buildMenuMessage", () => {
-  test("状況表示とモード切替のボタンを出す", () => {
-    const json = JSON.stringify(buildMenuMessage("auto"));
-    expect(json).toContain("status:");
-    expect(json).toContain("mode:approve");
-    expect(json).toContain("mode:auto");
+  test("押すと用語が送信される（何を操作したか会話に残る）", () => {
+    const message = buildMenuMessage("approve");
+    const json = JSON.stringify(message);
+    expect(json).toContain('"type":"message"');
+    expect(json).toContain(TERMS.status);
   });
 
-  test("現在のモードを本文に出す", () => {
-    expect(JSON.stringify(buildMenuMessage("approve"))).toContain("approve");
+  test("いまどちらのモードかを言葉で出す", () => {
+    expect(JSON.stringify(buildMenuMessage("approve"))).toContain("押したら予約");
+    expect(JSON.stringify(buildMenuMessage("auto"))).toContain("自動で予約");
+  });
+
+  test("切替ボタンはもう片方のモードだけを出す（選択中の装飾に頼らない）", () => {
+    const onApprove = JSON.stringify(buildMenuMessage("approve"));
+    expect(onApprove).toContain(TERMS.auto);
+    expect(onApprove).not.toContain(TERMS.approve);
+
+    const onAuto = JSON.stringify(buildMenuMessage("auto"));
+    expect(onAuto).toContain(TERMS.approve);
+  });
+
+  test("吹き出しを最大幅にする（既定は狭くて折り返す）", () => {
+    expect(JSON.stringify(buildMenuMessage("approve"))).toContain("giga");
   });
 
   test("ボタンの label は 20 文字を超えない", () => {
@@ -179,12 +194,8 @@ describe("buildMenuMessage", () => {
     }
   });
 
-  test("auto は自動で予約されることが分かる表記にする", () => {
-    expect(JSON.stringify(buildMenuMessage("approve"))).toContain("自動で予約");
-  });
-
-  test("廃止した notify のボタンは出さない", () => {
-    expect(JSON.stringify(buildMenuMessage("approve"))).not.toContain("mode:notify");
+  test("廃止した notify は出さない", () => {
+    expect(JSON.stringify(buildMenuMessage("approve"))).not.toContain("notify");
   });
 });
 

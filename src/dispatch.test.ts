@@ -156,7 +156,7 @@ describe("dispatchCommands: 承認", () => {
       options(fetchFn, store),
     );
 
-    expect(replyTexts(calls)[0]).toContain("見つかりません");
+    expect(replyTexts(calls)[0]).toContain("手動の予約");
   });
 });
 
@@ -247,7 +247,7 @@ describe("dispatchCommands: メニュー・状況・モード", () => {
     );
 
     expect(jobNames(calls)).toEqual([]);
-    expect(replyFlex(calls)[0]).toContain("status:");
+    expect(replyFlex(calls)[0]).toContain("状況");
   });
 
   test("メニューには保存されている現在のモードを出す", async () => {
@@ -260,7 +260,7 @@ describe("dispatchCommands: メニュー・状況・モード", () => {
       options(fetchFn, store),
     );
 
-    expect(replyFlex(calls)[0]).toContain("auto");
+    expect(replyFlex(calls)[0]).toContain("自動で予約");
   });
 
   test("mode は保存するだけで Job を起動しない", async () => {
@@ -298,7 +298,7 @@ describe("dispatchCommands: メニュー・状況・モード", () => {
     );
 
     expect(current("mode.txt")).toBe("");
-    expect(replyFlex(calls)[0]).toContain("approve");
+    expect(replyFlex(calls)[0]).toContain("不明なモード");
   });
 
   test("status はスナップショットから応答を作る（Job を起動しない）", async () => {

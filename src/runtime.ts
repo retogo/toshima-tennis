@@ -96,17 +96,18 @@ export interface StatusInput {
  *   - 記録に無い予約（手動で取ったもの）は自動取消の対象にならない
  */
 export function formatStatus(input: StatusInput, at: Date): string {
-  const lines = [`■ 動作モード: ${input.mode}`];
+  const lines = [
+    input.mode === "auto" ? "自動で予約します" : "押したら予約します",
+  ];
 
   if (!input.reservations) {
-    lines.push("", "予約一覧はまだ取得できていません。");
+    lines.push("", "予約一覧をまだ取得できていません");
     return lines.join("\n");
   }
 
-  lines.push("", `■ 予約 ${input.reservations.length} 件`);
-
   if (input.reservations.length === 0) {
-    lines.push("  予約はありません。");
+    lines.push("", "予約はありません");
+    return lines.join("\n");
   }
 
   const sorted = [...input.reservations].sort(
@@ -115,27 +116,24 @@ export function formatStatus(input: StatusInput, at: Date): string {
 
   for (const reservation of sorted) {
     const deadline = cancellationDeadline(reservation.date);
+    const tracked = input.tracked[reservationKey(reservation)];
+    const expired = reservation.cancelValue ? "" : "（期限切れ）";
+
+    // 「取消できるか」はサイトの判断、「自動取消の対象か」はツールの記録。
+    // 別物なので行を分ける。混ぜると判断を誤る。
     lines.push(
       "",
-      `  ${reservation.date} ${reservation.timeRange}（${reservation.feeYen.toLocaleString()}円）`,
-      `    取消期限: ${deadline}${reservation.cancelValue ? "" : "（期限切れ・ウェブから取消不可）"}`,
+      `${reservation.date} ${reservation.timeRange}`,
+      `${reservation.feeYen.toLocaleString()}円 / 取消期限 ${deadline}${expired}`,
+      !tracked
+        ? "手動の予約（自動取消しません）"
+        : tracked.approved
+          ? "承認済み（自動取消しません）"
+          : `未承認 / ${minusDays(deadline, input.cancelBufferDays)} に自動取消`,
     );
-
-    const tracked = input.tracked[reservationKey(reservation)];
-    if (!tracked) {
-      lines.push("    手動で取った予約（自動取消の対象外）");
-    } else if (tracked.approved) {
-      lines.push("    承認済み（自動取消の対象外）");
-    } else {
-      lines.push(
-        `    未承認 → ${minusDays(deadline, input.cancelBufferDays)} に自動取消`,
-      );
-    }
   }
 
-  if (input.takenAt) {
-    lines.push("", `一覧の取得時刻: ${toJst(input.takenAt)}`);
-  }
+  if (input.takenAt) lines.push("", `${toJst(input.takenAt)} 時点`);
 
   return lines.join("\n");
 }

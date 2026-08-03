@@ -151,17 +151,6 @@ describe("extractCommands", () => {
     expect(extractCommands(body, ME)).toEqual([]);
   });
 
-  test("テキストの中身は操作として解釈しない", () => {
-    // 「cancel:x」と打っただけで取消が走ってはいけない。テキストは
-    // メニュー表示のきっかけとしてのみ扱う。
-    const body = {
-      events: [
-        { type: "message", source: { userId: ME }, message: { type: "text", text: "cancel:x" } },
-      ],
-    };
-    expect(extractCommands(body, ME).map((c) => c.action)).toEqual(["menu"]);
-  });
-
   test("events が壊れていても例外にしない", () => {
     expect(extractCommands(null, ME)).toEqual([]);
     expect(extractCommands({ events: "x" }, ME)).toEqual([]);
@@ -172,6 +161,15 @@ describe("extractCommands", () => {
     expect(extractCommands(body, ME)[0]!.replyToken).toBe("rt-1");
   });
 });
+
+function textEvent(userId: string, text: string) {
+  return {
+    type: "message",
+    replyToken: "rt-1",
+    source: { type: "user", userId },
+    message: { type: "text", text },
+  };
+}
 
 describe("extractCommands: メニューと状況", () => {
   test("status / mode を取り出す", () => {
@@ -189,37 +187,58 @@ describe("extractCommands: メニューと状況", () => {
     expect(extractCommands(body, ME)[0]!.slot).toBe("");
   });
 
-  test("mode は値を slot に載せる", () => {
-    const body = { events: [postbackEvent(ME, "mode:notify")] };
-    expect(extractCommands(body, ME)[0]!.slot).toBe("notify");
+  test("予約や取消はコマが空なら無視する（menu / status とは違う）", () => {
+    const body = {
+      events: [postbackEvent(ME, "reserve:"), postbackEvent(ME, "cancel:")],
+    };
+    expect(extractCommands(body, ME)).toEqual([]);
+  });
+});
+
+describe("extractCommands: テキストの用語", () => {
+  test("「メニュー」でメニューを出す", () => {
+    expect(extractCommands({ events: [textEvent(ME, "メニュー")] }, ME)).toEqual([
+      { action: "menu", slot: "", replyToken: "rt-1" },
+    ]);
   });
 
-  test("テキストメッセージはメニュー表示として扱う", () => {
-    const body = {
-      events: [
-        {
-          type: "message",
-          replyToken: "rt-1",
-          source: { type: "user", userId: ME },
-          message: { type: "text", text: "なんでもいい" },
-        },
-      ],
-    };
-    expect(extractCommands(body, ME).map((c) => c.action)).toEqual(["menu"]);
+  test("「状況」で予約状況を出す", () => {
+    expect(
+      extractCommands({ events: [textEvent(ME, "状況")] }, ME).map((c) => c.action),
+    ).toEqual(["status"]);
+  });
+
+  test("「自動」「手動」でモードを切り替える", () => {
+    const auto = extractCommands({ events: [textEvent(ME, "自動")] }, ME)[0]!;
+    expect(auto.action).toBe("mode");
+    expect(auto.slot).toBe("auto");
+
+    const manual = extractCommands({ events: [textEvent(ME, "手動")] }, ME)[0]!;
+    expect(manual.action).toBe("mode");
+    expect(manual.slot).toBe("approve");
+  });
+
+  test("前後の空白を無視する", () => {
+    expect(
+      extractCommands({ events: [textEvent(ME, " 状況 ")] }, ME).map((c) => c.action),
+    ).toEqual(["status"]);
+  });
+
+  test("知らないテキストには反応しない", () => {
+    // 用語だけに反応する。関係ない発言でメニューが出てこないように
+    expect(extractCommands({ events: [textEvent(ME, "こんにちは")] }, ME)).toEqual([]);
+    expect(extractCommands({ events: [textEvent(ME, "")] }, ME)).toEqual([]);
+  });
+
+  test("テキストで予約や取消はできない（誤送信で不可逆な操作を走らせない）", () => {
+    expect(extractCommands({ events: [textEvent(ME, "cancel:x")] }, ME)).toEqual([]);
+    expect(
+      extractCommands({ events: [textEvent(ME, "2026-08-24 第1面 9:00～11:00")] }, ME),
+    ).toEqual([]);
   });
 
   test("他人のテキストは無視する", () => {
-    const body = {
-      events: [
-        {
-          type: "message",
-          replyToken: "rt-1",
-          source: { type: "user", userId: STRANGER },
-          message: { type: "text", text: "メニュー" },
-        },
-      ],
-    };
-    expect(extractCommands(body, ME)).toEqual([]);
+    expect(extractCommands({ events: [textEvent(STRANGER, "状況")] }, ME)).toEqual([]);
   });
 
   test("テキスト以外のメッセージは無視する", () => {
@@ -232,13 +251,6 @@ describe("extractCommands: メニューと状況", () => {
           message: { type: "sticker", stickerId: "1" },
         },
       ],
-    };
-    expect(extractCommands(body, ME)).toEqual([]);
-  });
-
-  test("予約や取消はコマが空なら無視する（menu / status とは違う）", () => {
-    const body = {
-      events: [postbackEvent(ME, "reserve:"), postbackEvent(ME, "cancel:")],
     };
     expect(extractCommands(body, ME)).toEqual([]);
   });
