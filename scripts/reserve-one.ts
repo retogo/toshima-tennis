@@ -13,12 +13,15 @@ import { parseConfig } from "../src/config";
 import { loadCredentials } from "../src/credentials";
 import { pushMessage } from "../src/line";
 import { formatReservationBody, slotKey, subjectFor } from "../src/notify";
+import {
+  findReservation,
+  parseReservations,
+  reservationKey,
+} from "../src/reservations";
 import { reserveSlot } from "../src/reserve";
-import { stateStoreFromEnv } from "../src/state";
 import { reservedCountInMonth } from "../src/wishlist";
 
 const SOGO_TAIIKUJO = "116005";
-const RESERVED_KEY = "reserved.txt";
 const CONFIG_FILE = process.env.RESERVE_CONFIG ?? "reserve.json";
 
 function required(name: string): string {
@@ -32,7 +35,6 @@ const lineToken = required("LINE_CHANNEL_ACCESS_TOKEN");
 const lineTo = required("LINE_TO");
 
 const dryRun = process.env.RESERVE_DRY_RUN === "1";
-const state = stateStoreFromEnv();
 
 const config = parseConfig(await Bun.file(CONFIG_FILE).text());
 const credentials = loadCredentials();
@@ -43,6 +45,25 @@ async function finish(text: string): Promise<never> {
   await pushMessage(lineToken, lineTo, text);
   process.exit(0);
 }
+
+/**
+ * すでに予約している件数を確かめる。**サイトの予約一覧が真実の源。**
+ *
+ * ボタンからの予約は poll の選択ロジック（月上限つき）を通らないため、ここで
+ * 独立に上限を守る必要がある。状態ファイルを見ていた頃は、poll が書くのをやめた
+ * あと常に空になり、**ボタン経由だと月上限が効かない**状態になっていた。
+ *
+ * 空き照会とは別のセッションで行う。`loginFromTop` がトップページから入り直すので、
+ * 同じ client を使うと予約に必要な画面遷移が巻き戻ってしまう。
+ */
+const reservations = parseReservations(
+  await (async () => {
+    const session = new ToshimaClient();
+    const menu = await session.loginFromTop(credentials.userId, credentials.password);
+    return session.openReservations(menu);
+  })(),
+);
+console.log(`予約済み ${reservations.length} 件（サイト）`);
 
 const client = new ToshimaClient();
 await client.openStartPage();
@@ -62,14 +83,16 @@ if (!target) {
   await finish(`⚠️ ${wanted}\n\n既に空きがなくなっていました。予約できていません。`);
 }
 
-const alreadyReserved = (await state.read(RESERVED_KEY)).split("\n").filter(Boolean);
-
-if (alreadyReserved.includes(wanted)) {
-  await finish(`⚠️ ${wanted}\n\n予約済みとして記録されています。何もしませんでした。`);
+if (findReservation(reservations, wanted)) {
+  await finish(
+    `⚠️ ${wanted}\n\n同じ利用日・時間帯の予約が既にあります。何もしませんでした。`,
+  );
 }
 
-// ボタンからの予約は選択ロジックを通らないため、ここで月上限を守る。
-const usedThisMonth = reservedCountInMonth(alreadyReserved, target!.date);
+const usedThisMonth = reservedCountInMonth(
+  reservations.map(reservationKey),
+  target!.date,
+);
 if (usedThisMonth >= config.wishlist.maxPerMonth) {
   await finish(
     `⚠️ ${wanted}\n\n${target!.date.slice(0, 7)} は既に ${usedThisMonth} 件予約済みで、` +
@@ -82,8 +105,6 @@ await reserveSlot(client, target!, credentials, config.application, { dryRun });
 if (dryRun) {
   await finish(`[dry-run] ${wanted}\n\n確定せずに中断しました。`);
 }
-
-await state.write(RESERVED_KEY, [...alreadyReserved, wanted].join("\n"));
 
 await finish(
   `${subjectFor("reserved")}\n\n${formatReservationBody([wanted], new Date())}`,
