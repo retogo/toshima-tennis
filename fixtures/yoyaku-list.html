@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<!--[if IE 8 ]> <html class="lt-ie9 ie8" lang="ja"> <![endif]-->
+<!--[if IE 9 ]> <html class="lt-ie10 ie9" lang="ja"> <![endif]-->
+<!--[if (gte IE 10)|!(IE)]><!--> <html lang="ja"> <!--<![endif]-->
+<head id="ctl00_Head1"><meta charset="utf-8" /><title>
+	豊島区公共施設予約システム
+</title><meta http-equiv="Pragma" content="no-cache" /><meta http-equiv="Cache-Control" content="no-cache" /><meta http-equiv="Expires" content="-1" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link href="/toshima/WebR/Content/css/font-awesome.min.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/jquery-ui-1.11.2.min.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/default.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/default_print.css?LastUpdDate=20180817" media="print" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/tooltipster.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/jquery.remodal.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery-1.11.1.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery-ui-1.11.2.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/common.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.tooltipster.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.remodal.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.inputfocus.js?LastUpdDate=20180817"></script>
+	<!--[if lt IE 9]> 
+	<script src="/toshima/WebR/Scripts/html5.js?LastUpdDate=20180817"></script>
+	<script src="/toshima/WebR/Scripts/IE9.js?LastUpdDate=20180817"></script>
+	<script src="/toshima/WebR/Scripts/css3-mediaqueries.js?LastUpdDate=20180817"></script> 
+	<![endif]-->
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            unload_flg = 0;
+            
+            // 文字サイズ変更時のみスケール調整
+            
+        });
+	    $(document).on('close', '[data-remodal-id=logoutInfo]', function () {
+		    dialog_flg = 0;
+	    });
+	    $(document).on('close', '[data-remodal-id=loginInfo]', function () {
+		    dialog_flg = 0;
+	    });
+        $.ajaxSetup({
+            error: function (xhr, status, error) {
+                    var errorpage = 'https://www2.pf489.com/Toshima/WebR/Error/html/GenericError.html';
+                    if (errorpage) {
+                        dialog_flg = 1; // アンロードのメッセージを表示させない
+                        window.location.href = errorpage;
+                    }
+                }
+        });
+    </script>
+
+<div class="remodal info" data-remodal-id="SesseionTimeoutWarn">
+	<h2>メッセージ</h2>
+	<div><p>セッションタイムアウトまであと0分です。</p></div>
+</div>
+  
+<link href="/toshima/WebR/Content/css/WgR_YoyakukakuninTorikeshi.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+<link href="/toshima/WebR/Content/css/WgR_YoyakukakuninTorikeshi_Print.css?LastUpdDate=20180817" media="print" rel="stylesheet" type="text/css">
+<link href="/toshima/WebR/Content/css/datepicker.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/toshima/WebR/Scripts/jquery.ui.datepicker-ja.js?LastUpdDate=20180817"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.breadcrumbs a').tooltipster({ position: 'bottom' });
+        var hyoujiOpenCloseFlg = "close";
+        if (hyoujiOpenCloseFlg == "close") {
+            $(".joken").hide();
+			$("#btnShowDetail").prop('value',String.fromCharCode("0xf067") + ' 表示条件を指定');
+        }else{
+			$("#btnShowDetail").prop('value',String.fromCharCode("0xf068") + ' 表示条件を指定');
+        }
+        $("#btnShowDetail").click(function () {
+            $(".joken").slideToggle();
+            if (hyoujiOpenCloseFlg == "close") {
+                hyoujiOpenCloseFlg = "open";
+				$("#btnShowDetail").prop('value',String.fromCharCode("0xf068") + ' 表示条件を指定');
+            } else {
+                hyoujiOpenCloseFlg = "close";
+				$("#btnShowDetail").prop('value',String.fromCharCode("0xf067") + ' 表示条件を指定');
+            }
+            setHyoujiOpenCloseFlg(hyoujiOpenCloseFlg);
+        });
+        $("#dpStartDate,#dpEndDate").datepicker().trigger('datepicker');
+        
+        // アンロード時のダイアログ対象外、二重送信
+		beforeSubmit("","#btnHyoji,.detail dd input,.equip dd input,.credit");
+    });
+    function clearDate() {
+        var form = document.forms['form1'];
+        if (!form) form = document.form1;
+        form.dpStartDate.value = "2026/8/3";
+        form.dpEndDate.value = "";
+    }
+    function setHyoujiOpenCloseFlg(value) { $("#hyoujiOpenCloseFlg").val(value); };
+	// トグルボタンフォーカス時のアウトライン調整
+	$(document).ready(function() {
+		$(".toggle dd input,.toggle li input").on("focus", function(){
+			if(this.parentNode.tagName == "DD" || this.parentNode.tagName == "LI"){
+				var childElem = this.parentNode.childNodes;
+				if(childElem[0].tagName=="INPUT" && childElem[1].tagName=="LABEL"){
+					$(childElem[0]).css("width", childElem[1].offsetWidth-1);
+					$(childElem[0]).css("height", childElem[1].offsetHeight-2);
+				}
+			}
+		});
+	});
+</script>
+
+    <style type="text/css">
+        
+        
+        /**** 文字サイズ変更時のみスケール調整 ****/
+        
+    </style>
+    </head>
+
+<body >
+<form action="/toshima/WebR/YoyakuKakunin/WgR_YoyakuKakuninTorikeshi" id="form1" method="post"><input name="__RequestVerificationToken" type="hidden" value="gFRTDV94Ur1734yh+<token>/h2KDb+pQYSTV+<token>=" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<div id="wrap" class="remodal-bg">
+	<div id="wrap_head">
+        
+        <div id="head" >
+        
+        <h1><span class="city">豊島区</span><span class="title">公共施設予約システム</span></h1>
+        <p <name> さん</p>
+			  <ul>
+                  <li class="message"><a href="javascript:__doPostBack('message','')">メッセージ</a></li><li class="tebiki"><a href="javascript:void(0)" onclick="window.open('https://www2.pf489.com/toshima/help/webR/index.asp','','toolbar=yes,location=yes,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=800,height=700'); return false;">ご利用の手引き</a></li><li class="style"><a href="javascript:__doPostBack('color','')">色・文字サイズ変更</a></li><li class="logout"><a href="#logoutConfirm">ログアウト</a></li>
+			  </ul>
+			  <div class="dock_nav">
+				  <a href="#nav">メニュー</a>
+			  </div>
+		  </div>
+	</div>
+  <div id="body">
+    
+<ul class="breadcrumbs clearfix">
+    <li><a href="javascript:__doPostBack('menu','')" title="メニュー：予約内容の確認・取消">メニュー</a></li>
+    <li class="current"><span>予約確認</span></li>
+    <li>予約取消確認</li>
+    <li>予約取消完了</li>
+</ul>
+
+<div class="content_head">
+    <h2>予約内容の確認・取消</h2>
+    
+       <p class="desc">予約の取消を行う場合は「取消」ボタンを選択し、「次へ進む」ボタンを押してください。(複数選択できます。)<br />
+       予約内容や納付状況を確認する場合は「詳細」ボタンを、備品（付帯品）の追加予約や変更をする場合は「備品予約/変更」ボタンを押してください。</p>
+    
+</div>
+<div class="content_body clearfix">
+    <ul class="clearfix">
+        
+        <li class="credit"><input type="button" class="btnSky middle" value="クレジット決済画面" onclick="javascript:__doPostBack('credit','')"></li>
+        
+        <li class="group"><input type="button" class="btnGreen middle" value="&#xf07c; 登録済施設グループ" onclick="if(isPostBack == 0){location.href='#shisetsuGroup'}"></li>
+        <li class="print"><input type="button" class="btnBrown middle" value="&#xf02f; 一覧を印刷" onclick="window.print();"></li>
+    </ul>
+    
+	<input type="button" id="btnShowDetail" class="btnGray" value="&#xf067; 表示条件を指定">
+    <div class="joken clearfix">
+        
+        <dl class="clearfix">
+            <dt><label for="dpStartDate">表示期間</label></dt>
+            <dd><input type="text" id="dpStartDate" name="dpStartDate" value="2026/8/3"><span>～</span></dd>
+            <dd><input type="text" id="dpEndDate" name="dpEndDate" value=""></dd>
+            <dd class="btn"><input type="button" id="btnClear" onclick="clearDate ();" class="btnSilver" value="&#xf0e2; 初期の表示期間に戻す"></dd>
+        </dl>
+        
+        <dl class="order">
+            <dt>表示順</dt>
+            <dd>
+                <ul class="toggle united clearfix">
+                    <li><input type="radio" name="radioOrder" id="radioOrderShisetsu" value="false" checked><label class="switch-on" for="radioOrderShisetsu">施設順</label></li>
+                    <li><input type="radio" name="radioOrder" id="radioOrderDate" value="true" ><label class="switch-off" for="radioOrderDate">利用日順</label></li>
+                </ul>
+            </dd>
+        </dl>
+        <input type="button" id="btnHyoji" onclick="__doPostBack('hyouji','');" class="btnSky large" value="&#xf002; 表示">
+    </div>
+    
+    <div class="clearfix">
+        
+        <div class="item_wrap">
+            <div class="item_head">
+                <h3><a href="javascript:void(window.open('https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003430.html'))">総合体育場</a><span></span></h3>
+                <h3>庭球場<span></span></h3>
+                <h3>１面<span></span></h3>
+            </div>
+            <div class="item title">
+                
+                <dl class="status">
+                    <dt></dt>
+                </dl>
+                <dl class="remark">
+                    <dt>状態</dt>
+                </dl>
+                <dl class="date">
+                    <dt>利用日</dt>
+                </dl>
+                <dl class="time">
+                    <dt>時間帯</dt>
+                </dl>
+                <dl class="price">
+                    <dt>使用料</dt>
+                </dl>
+                <dl class="detail">
+                    <dt>詳細</dt>
+                </dl>
+                <dl class="equip">
+                    <dt>備品（付帯品）</dt>
+                </dl>
+                <dl class="cancel">
+                    <dt>取消</dt>
+                </dl>
+                <dl class="person">
+                    <dt>利用人数</dt>
+                </dl>
+                <dl class="purpose">
+                    <dt>使用目的</dt>
+                </dl>
+            </div>
+            
+            <div class="item ">
+                
+                <dl class="status ">
+                    <dt>状態</dt>
+                    <dd><span>本予約</span></dd>
+                </dl>
+                <dl class="remark none">
+                    <dt></dt>
+                    <dd>－</dd>
+                </dl>
+                <dl class="date">
+                    <dt>利用日</dt>
+                    <dd>2026/8/9(日)</dd>
+                </dl>
+                <dl class="time">
+                    <dt>時間帯</dt>
+                    <dd>15:00～17:00</dd>
+                </dl>
+                <dl class="price">
+                    <dt>使用料</dt>
+                    <dd>2,000<span>円</span></dd>
+                </dl>
+                <dl class="detail">
+                    <dt>詳細</dt>
+                    <dd><input type="button" class="btnSky" value="&#xf00e; 詳細" onclick="__doPostBack('shousai','0');"></dd>
+                </dl>
+                <dl class="equip">
+                
+                </dl>
+                <dl class="cancel toggle">
+                    <dt>取消</dt>
+                    <dd></dd>
+                </dl>
+                <dl class="person">
+                    <dt>利用人数</dt>
+                    <dd>2<span>人</span></dd>
+                </dl>
+                <dl class="purpose">
+                    <dt>使用目的</dt>
+                    <dd>テニス</dd>
+                </dl>
+            </div>
+            
+        </div>
+        
+        <div class="item_wrap">
+            <div class="item_head">
+                <h3><a href="javascript:void(window.open('https://www.city.toshima.lg.jp/501/bunka/sports/sports/003418/003430.html'))">総合体育場</a><span></span></h3>
+                <h3>庭球場<span></span></h3>
+                <h3>１面<span></span></h3>
+            </div>
+            <div class="item title">
+                
+                <dl class="status">
+                    <dt></dt>
+                </dl>
+                <dl class="remark">
+                    <dt>状態</dt>
+                </dl>
+                <dl class="date">
+                    <dt>利用日</dt>
+                </dl>
+                <dl class="time">
+                    <dt>時間帯</dt>
+                </dl>
+                <dl class="price">
+                    <dt>使用料</dt>
+                </dl>
+                <dl class="detail">
+                    <dt>詳細</dt>
+                </dl>
+                <dl class="equip">
+                    <dt>備品（付帯品）</dt>
+                </dl>
+                <dl class="cancel">
+                    <dt>取消</dt>
+                </dl>
+                <dl class="person">
+                    <dt>利用人数</dt>
+                </dl>
+                <dl class="purpose">
+                    <dt>使用目的</dt>
+                </dl>
+            </div>
+            
+            <div class="item ">
+                
+                <dl class="status ">
+                    <dt>状態</dt>
+                    <dd><span>本予約</span></dd>
+                </dl>
+                <dl class="remark none">
+                    <dt></dt>
+                    <dd>－</dd>
+                </dl>
+                <dl class="date">
+                    <dt>利用日</dt>
+                    <dd>2026/8/24(月)</dd>
+                </dl>
+                <dl class="time">
+                    <dt>時間帯</dt>
+                    <dd>9:00～11:00</dd>
+                </dl>
+                <dl class="price">
+                    <dt>使用料</dt>
+                    <dd>2,000<span>円</span></dd>
+                </dl>
+                <dl class="detail">
+                    <dt>詳細</dt>
+                    <dd><input type="button" class="btnSky" value="&#xf00e; 詳細" onclick="__doPostBack('shousai','1');"></dd>
+                </dl>
+                <dl class="equip">
+                
+                </dl>
+                <dl class="cancel toggle">
+                    <dt>取消</dt>
+                    <dd><input type="checkbox" name="checkCancel" id="checkCancel2" value="1" ><label class="switch-off" for="checkCancel2">取消</label></dd>
+                </dl>
+                <dl class="person">
+                    <dt>利用人数</dt>
+                    <dd>2<span>人</span></dd>
+                </dl>
+                <dl class="purpose">
+                    <dt>使用目的</dt>
+                    <dd>テニス</dd>
+                </dl>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+</div>
+<input type="hidden" name="hyoujiOpenCloseFlg" id="hyoujiOpenCloseFlg" value="close"/>
+
+  </div>
+  
+
+<div class="navbar">
+    <ul>
+        <li class="next"><a href="javascript:__doPostBack('next','')" class="btnBlue">次へ進む</a></li>
+        <li class="menu"><a href="javascript:__doPostBack('menu','')" class="btnBlue">メニュー</a></li>
+    </ul>
+</div>
+
+</div>
+<div class="remodal nav" data-remodal-id="nav">
+	<h2>メニュー</h2>
+    
+        <p <name> さん</p>
+    
+	<ul>
+        <li class="message"><a href="javascript:__doPostBack('message','')">メッセージ</a></li><li class="style"><a href="javascript:__doPostBack('color','')">色・文字サイズ変更</a></li><li class="tebiki"><a href="javascript:void(0)" onclick="window.open('https://www2.pf489.com/toshima/help/webR/index.asp','','toolbar=yes,location=yes,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=800,height=700'); return false;">ご利用の手引き</a></li><li class="logout"><a href="#logoutConfirm">ログアウト</a></li>
+	</ul>
+</div>
+
+<!-- 登録済施設グループ照会 -->
+
+<div class="remodal shisetsu_group " data-remodal-id="shisetsuGroup">
+	<h2>登録済施設グループ</h2>
+	<div>
+
+		<div class="item_wrap">
+			<div class="item title">
+				<dl class="group">
+					<dt>施設グループ名</dt>
+				</dl>
+				<dl class="date">
+					<dt>登録日</dt>
+				</dl>
+				<dl class="limit">
+					<dt>有効期限</dt>
+				</dl>
+				<dl class="group_status">
+					<dt>登録状態</dt>
+				</dl>
+				
+			</div>
+            
+			<div class="item ">
+				<dl class="group">
+					<dt>施設グループ名</dt>
+					<dd>サンプル団体</dd>
+				</dl>
+				<dl class="date">
+					<dt>登録日</dt>
+					<dd>2024/7/30(火)</dd>
+				</dl>
+				<dl class="limit">
+					<dt>有効期限</dt>
+					<dd>2027/7/31(土)</dd>
+				</dl>
+				<dl class="group_status">
+					<dt>登録状態</dt>
+					<dd>通常</dd>
+				</dl>
+                
+			</div>
+            
+		</div>
+
+	</div>
+</div>
+<!-- メッセージダイアログ -->
+
+
+<script type="text/javascript">
+    
+    function showMessageDialog(style,title,message) {
+        showMessageDialog(style,title,message,"msgconfirm",null);
+    }
+    function showMessageDialog(style,title,message,confirmCmd,confirmArg) {
+        $("#messageDlg").removeClass().addClass('remodal ' + style);
+        $("#messageDlg h2").text(title);
+        $("#messageDlg div p").html(message);
+        $("#messageDlg ul").remove();
+        if (style=="notice") {
+            $("#messageDlg div").after(
+                "<ul class=\"clearfix\">" +
+                    "<li><input type=\"button\" class=\"btnSky remodal-confirm\" value=\"はい\" onclick=\"__doPostBack('"+confirmCmd+"','"+confirmArg+"');\"></li>" +
+                    "<li><input type=\"button\" class=\"btnSky remodal-cancel\" value=\"いいえ\" onclick=\"location.href='#';\"></li>" +
+                "</ul>");
+            beforeSubmit('', '#messageDlg .remodal-confirm');
+        }
+        location.href='#messageDlg';
+    };
+</script>
+<div class="remodal" id="messageDlg" data-remodal-id="messageDlg">
+    <h2></h2>
+    <div class="clearfix"><p></p>
+         このダイアログは右上の×で閉じることができます。<br />
+        （ブラウザの戻るボタンは使用しないでください。）
+    </div>
+</div>
+
+
+<div class="remodal notice logoutConfirm" data-remodal-id="logoutConfirm">
+    <h2>確認</h2>
+    <div class="clearfix"><p>ログアウトします。よろしいですか？</p></div>
+    <ul class="clearfix">
+		<li><input type="button" id="btnConfirm" class="btnBlue remodal-confirm" value="はい" onclick="__doPostBack('logout','')"></li>
+		<li><input type="button" class="btnGray remodal-cancel" value="いいえ" onclick="removeWaitAnc('a[href=\'#logoutConfirm\']')"></li>
+	</ul>
+</div>
+   <script type="text/javascript">       beforeSubmit("", "#btnConfirm");</script>
+</form>
+</body>
+</html>

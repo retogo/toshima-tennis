@@ -10,6 +10,7 @@
 import { BASE_URL, type ApplicationDetails, type ToshimaClient } from "./client";
 import { verifyConfirmation } from "./confirmation";
 import { slotKey } from "./notify";
+import { findReservation, parseReservations } from "./reservations";
 import type { TimeSlot } from "./parser";
 
 export interface ReserveOptions {
@@ -46,5 +47,16 @@ export async function reserveSlot(
     return;
   }
 
-  await client.confirmReservation();
+  const completed = await client.confirmReservation();
+
+  // 申込完了画面からは成否が読めないため、予約一覧で成立を確かめる。
+  // ここを応答 HTML の判定で済ませていたとき、成立した予約を失敗と誤認して
+  // 記録も通知も飛ばさないという事故が起きた。
+  const menu = await client.openMenu(completed);
+  const list = await client.openReservations(menu);
+  if (!findReservation(parseReservations(list), slotKey(slot))) {
+    throw new Error(
+      `確定を送信しましたが予約一覧に現れませんでした（${slotKey(slot)}）。予約システムで確認してください`,
+    );
+  }
 }

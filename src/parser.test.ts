@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  extractFormAction,
   extractToken,
   parseDailyAvailability,
   parseFacilities,
@@ -73,5 +74,22 @@ describe("parseTimeSlots", () => {
       timeRange: "9:00～11:00",
       checktimeValue: "0050220260730039:00～11:00",
     });
+  });
+});
+
+describe("extractFormAction", () => {
+  test("画面の form action を取り出す", () => {
+    expect(
+      extractFormAction('<form action="/toshima/WebR/Yoyaku/WgR_YoyakuNaiyou" method="post">'),
+    ).toBe("/toshima/WebR/Yoyaku/WgR_YoyakuNaiyou");
+  });
+
+  test("実際の予約一覧画面から取り出せる", async () => {
+    const html = await Bun.file("fixtures/yoyaku-list.html").text();
+    expect(extractFormAction(html)).toContain("/toshima/WebR/");
+  });
+
+  test("form が無ければ例外にする（画面遷移に失敗している）", () => {
+    expect(() => extractFormAction("<div>エラー</div>")).toThrow(/form/);
   });
 });

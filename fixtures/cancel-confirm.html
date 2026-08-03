@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!--[if IE 8 ]> <html class="lt-ie9 ie8" lang="ja"> <![endif]-->
+<!--[if IE 9 ]> <html class="lt-ie10 ie9" lang="ja"> <![endif]-->
+<!--[if (gte IE 10)|!(IE)]><!--> <html lang="ja"> <!--<![endif]-->
+<head id="ctl00_Head1"><meta charset="utf-8" /><title>
+	豊島区公共施設予約システム
+</title><meta http-equiv="Pragma" content="no-cache" /><meta http-equiv="Cache-Control" content="no-cache" /><meta http-equiv="Expires" content="-1" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link href="/toshima/WebR/Content/css/font-awesome.min.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/jquery-ui-1.11.2.min.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/default.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/default_print.css?LastUpdDate=20180817" media="print" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/tooltipster.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <link href="/toshima/WebR/Content/css/jquery.remodal.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery-1.11.1.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery-ui-1.11.2.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/common.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.tooltipster.min.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.remodal.js?LastUpdDate=20180817"></script>
+    <script type="text/javascript" src="/toshima/WebR/Scripts/jquery.inputfocus.js?LastUpdDate=20180817"></script>
+	<!--[if lt IE 9]> 
+	<script src="/toshima/WebR/Scripts/html5.js?LastUpdDate=20180817"></script>
+	<script src="/toshima/WebR/Scripts/IE9.js?LastUpdDate=20180817"></script>
+	<script src="/toshima/WebR/Scripts/css3-mediaqueries.js?LastUpdDate=20180817"></script> 
+	<![endif]-->
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            unload_flg = 0;
+            
+            // 文字サイズ変更時のみスケール調整
+            
+        });
+	    $(document).on('close', '[data-remodal-id=logoutInfo]', function () {
+		    dialog_flg = 0;
+	    });
+	    $(document).on('close', '[data-remodal-id=loginInfo]', function () {
+		    dialog_flg = 0;
+	    });
+        $.ajaxSetup({
+            error: function (xhr, status, error) {
+                    var errorpage = 'https://www2.pf489.com/Toshima/WebR/Error/html/GenericError.html';
+                    if (errorpage) {
+                        dialog_flg = 1; // アンロードのメッセージを表示させない
+                        window.location.href = errorpage;
+                    }
+                }
+        });
+    </script>
+
+<div class="remodal info" data-remodal-id="SesseionTimeoutWarn">
+	<h2>メッセージ</h2>
+	<div><p>セッションタイムアウトまであと0分です。</p></div>
+</div>
+  
+<link href="/toshima/WebR/Content/css/WgR_YoyakukakuninTorikeshi.css?LastUpdDate=20180817" rel="stylesheet" type="text/css">
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.breadcrumbs a').tooltipster({ position: 'bottom' });
+    });
+</script>
+
+    <style type="text/css">
+        
+        
+        /**** 文字サイズ変更時のみスケール調整 ****/
+        
+    </style>
+    </head>
+
+<body class="yoyakuTorikeshiKakunin">
+<form action="/toshima/WebR/YoyakuKakunin/WgR_YoyakuTorikeshiKakunin" id="form1" method="post"><input name="__RequestVerificationToken" type="hidden" value="<token>+ZvVpMgY7Poe32xxWixwmAhpNQX1tB2ChZjk+<token>=" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<div id="wrap" class="remodal-bg">
+	<div id="wrap_head">
+        
+        <div id="head" >
+        
+        <h1><span class="city">豊島区</span><span class="title">公共施設予約システム</span></h1>
+        <p <name> さん</p>
+			  <ul>
+                  <li class="message"><a href="javascript:__doPostBack('message','')">メッセージ</a></li><li class="tebiki"><a href="javascript:void(0)" onclick="window.open('https://www2.pf489.com/toshima/help/webR/index.asp','','toolbar=yes,location=yes,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=800,height=700'); return false;">ご利用の手引き</a></li><li class="style"><a href="javascript:__doPostBack('color','')">色・文字サイズ変更</a></li><li class="logout"><a href="#logoutConfirm">ログアウト</a></li>
+			  </ul>
+			  <div class="dock_nav">
+				  <a href="#nav">メニュー</a>
+			  </div>
+		  </div>
+	</div>
+  <div id="body">
+    
+<ul class="breadcrumbs clearfix">
+    <li><a href="javascript:__doPostBack('menu','')" title="メニュー：予約内容の確認・取消">メニュー</a></li>
+    <li><a href="javascript:__doPostBack('history','WgR_YoyakukakuninTorikeshi')">予約確認</a></li>
+    <li class="current"><span>予約取消確認</span></li>
+    <li>予約取消完了</li>
+</ul>
+<div class="content_head">
+
+    <h2>予約の取消 確認</h2>
+    <p class="desc">以下の予約の取消を行います。内容がよろしければ「取消」ボタンを押してください。
+        <span class="warning">     
+            
+         </span>
+    </p>
+</div>
+<div class="content_body clearfix">
+    <div class="clearfix">
+        <div class="item_wrap">
+            <div class="item title">
+                <dl class="status">
+                    <dt></dt>
+                </dl>
+                <dl class="remark">
+                    <dt>状態</dt>
+                </dl>
+                <dl class="shisetsu">
+                    <dt>施設名</dt>
+                </dl>
+                <dl class="date">
+                    <dt>利用日</dt>
+                </dl>
+                <dl class="time">
+                    <dt>時間帯</dt>
+                </dl>
+                
+            </div>
+            
+            <div class="item ">
+                <dl class="status ">
+                    <dt>状態</dt>
+                    <dd><span>本予約</span></dd>
+                </dl>
+                
+                <dl class="remark none">
+                    <dt></dt>
+                    <dd>－</dd>
+                </dl>
+                <dl class="shisetsu">
+                    <dt>施設名</dt>
+                    <dd>総合体育場 庭球場 １面</dd>
+                </dl>
+                <dl class="date">
+                    <dt>利用日</dt>
+                    <dd>2026/8/24(月)</dd>
+                </dl>
+                <dl class="time">
+                    <dt>時間帯</dt>
+                    <dd>9:00～11:00</dd>
+                </dl>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+</div>
+
+  </div>
+  
+<div class="navbar">
+    <ul>
+        <li class="next cancel"><a href="javascript:__doPostBack('next','')" class="btnRed">取消</a></li>
+        <li class="prev"><a href="javascript:__doPostBack('back','')" class="btnBlue">前に戻る</a></li>
+        <li class="menu"><a href="javascript:__doPostBack('menu','')" class="btnBlue">メニュー</a></li>
+    </ul>
+</div>
+
+</div>
+<div class="remodal nav" data-remodal-id="nav">
+	<h2>メニュー</h2>
+    
+        <p <name> さん</p>
+    
+	<ul>
+        <li class="message"><a href="javascript:__doPostBack('message','')">メッセージ</a></li><li class="style"><a href="javascript:__doPostBack('color','')">色・文字サイズ変更</a></li><li class="tebiki"><a href="javascript:void(0)" onclick="window.open('https://www2.pf489.com/toshima/help/webR/index.asp','','toolbar=yes,location=yes,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=800,height=700'); return false;">ご利用の手引き</a></li><li class="logout"><a href="#logoutConfirm">ログアウト</a></li>
+	</ul>
+</div>
+
+<!-- メッセージダイアログ -->
+
+
+<script type="text/javascript">
+    
+    function showMessageDialog(style,title,message) {
+        showMessageDialog(style,title,message,"msgconfirm",null);
+    }
+    function showMessageDialog(style,title,message,confirmCmd,confirmArg) {
+        $("#messageDlg").removeClass().addClass('remodal ' + style);
+        $("#messageDlg h2").text(title);
+        $("#messageDlg div p").html(message);
+        $("#messageDlg ul").remove();
+        if (style=="notice") {
+            $("#messageDlg div").after(
+                "<ul class=\"clearfix\">" +
+                    "<li><input type=\"button\" class=\"btnSky remodal-confirm\" value=\"はい\" onclick=\"__doPostBack('"+confirmCmd+"','"+confirmArg+"');\"></li>" +
+                    "<li><input type=\"button\" class=\"btnSky remodal-cancel\" value=\"いいえ\" onclick=\"location.href='#';\"></li>" +
+                "</ul>");
+            beforeSubmit('', '#messageDlg .remodal-confirm');
+        }
+        location.href='#messageDlg';
+    };
+</script>
+<div class="remodal" id="messageDlg" data-remodal-id="messageDlg">
+    <h2></h2>
+    <div class="clearfix"><p></p>
+         このダイアログは右上の×で閉じることができます。<br />
+        （ブラウザの戻るボタンは使用しないでください。）
+    </div>
+</div>
+
+
+<div class="remodal notice logoutConfirm" data-remodal-id="logoutConfirm">
+    <h2>確認</h2>
+    <div class="clearfix"><p>ログアウトします。よろしいですか？</p></div>
+    <ul class="clearfix">
+		<li><input type="button" id="btnConfirm" class="btnBlue remodal-confirm" value="はい" onclick="__doPostBack('logout','')"></li>
+		<li><input type="button" class="btnGray remodal-cancel" value="いいえ" onclick="removeWaitAnc('a[href=\'#logoutConfirm\']')"></li>
+	</ul>
+</div>
+   <script type="text/javascript">       beforeSubmit("", "#btnConfirm");</script>
+</form>
+</body>
+</html>

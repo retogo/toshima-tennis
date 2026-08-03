@@ -1,5 +1,6 @@
 import {
   extractInputValue,
+  extractFormAction,
   extractToken,
   parseDailyAvailability,
   parseTimeSlots,
@@ -226,18 +227,75 @@ export class ToshimaClient {
    *
    * **不可逆な操作。** 呼ぶ前に必ず verifyConfirmation で画面の内容が
    * 意図したコマと一致していることを確かめること。
+   *
+   * **成否はここで判定しない。** 申込完了画面にも `__doPostBack('next','')` が
+   * 含まれるため、応答 HTML から成否は分からない。実際に予約が成立しているのに
+   * 失敗として例外を投げ、記録も通知も飛ばさないという事故が起きていた。
+   * 成立の確認は予約一覧（openReservations）を読んで行う。
    */
   async confirmReservation(): Promise<string> {
-    const html = await this.postBack(
-      `${BASE_URL}/Yoyaku/WgR_YoyakuKakunin`,
-      "next",
-    );
-    if (html.includes("__doPostBack('next','')")) {
-      throw new Error(
-        "確定を送信しましたが申込確認画面のままです（予約が成立したか予約システムで確認してください）",
-      );
-    }
-    return html;
+    return this.postBack(`${BASE_URL}/Yoyaku/WgR_YoyakuKakunin`, "next");
+  }
+
+  /**
+   * マイメニューに戻る。
+   *
+   * 申込完了・取消確認などの画面には `yoyaku`（予約内容の確認・取消）が無く、
+   * 直接は一覧に飛べない。どの画面にもあるメニューを経由する。
+   */
+  async openMenu(currentHtml: string): Promise<string> {
+    return this.postBack(this.resolve(currentHtml), "menu", "");
+  }
+
+  /**
+   * トップページから直接ログインする。
+   *
+   * 予約時のログインはコマ選択を経て遷移するが、予約一覧を見るだけのときは
+   * コマを選ぶ必要がない。トップの「ログイン」（`login` postback）から入る。
+   */
+  async loginFromTop(userId: string, password: string): Promise<string> {
+    await this.openStartPage();
+    await this.postBack(`${BASE_URL}/Home/WgR_ModeSelect`, "login", "");
+    return this.login(userId, password);
+  }
+
+  /**
+   * 「予約内容の確認・取消」画面を開く。
+   *
+   * 遷移先の URL は今いる画面の form action から取る。マイメニューからでも
+   * 申込完了画面からでも同じ呼び方で開けるようにするため。
+   */
+  async openReservations(currentHtml: string): Promise<string> {
+    return this.postBack(this.resolve(currentHtml), "yoyaku", "");
+  }
+
+  /**
+   * 予約一覧で取消対象を選び、取消確認画面へ進む。ここでは取消されない。
+   *
+   * @param cancelValue 予約一覧の checkCancel の値（Reservation.cancelValue）
+   */
+  async selectForCancellation(
+    currentHtml: string,
+    cancelValue: string,
+  ): Promise<string> {
+    return this.postBack(this.resolve(currentHtml), "next", "", [
+      ["checkCancel", cancelValue],
+    ]);
+  }
+
+  /**
+   * 取消確認画面で「取消」を押し、取消を確定させる。
+   *
+   * **不可逆な操作。** 呼ぶ前に必ず verifyCancellationScreen で画面の内容が
+   * 意図した予約と一致していることを確かめること。
+   */
+  async confirmCancellation(currentHtml: string): Promise<string> {
+    return this.postBack(this.resolve(currentHtml), "next", "");
+  }
+
+  /** 画面の form action を絶対 URL に直す。 */
+  private resolve(html: string): string {
+    return new URL(extractFormAction(html), BASE_URL).toString();
   }
 
   async openTimeSlots(checkdateValues: string[]): Promise<TimeSlot[]> {

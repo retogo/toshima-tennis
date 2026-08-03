@@ -260,11 +260,13 @@ describe("ToshimaClient", () => {
       expect(params.get("__EVENTTARGET")).toBe("next");
     });
 
-    test("確定後も申込確認画面が返ってきたら失敗として扱う", async () => {
+    test("応答内容では成否を判定しない（申込完了画面も next を含むため）", async () => {
+      // 応答から判定していた頃は、成立した予約を失敗と誤認して記録も通知も
+      // 飛ばしていた。成否は予約一覧を読んで確かめる（src/reserve.ts）。
       const { client } = await atConfirmScreen(
         () => new Response(CONFIRM_SCREEN, { status: 200 }),
       );
-      await expect(client.confirmReservation()).rejects.toThrow(/申込/);
+      await expect(client.confirmReservation()).resolves.toContain("申込");
     });
   });
 });

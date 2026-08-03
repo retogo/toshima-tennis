@@ -183,6 +183,33 @@ export function formatGoneBody(previous: string, at: Date): string {
   ].join("\n");
 }
 
+export const CANCELLED_SUBJECT = "🎾 予約を取消しました";
+
+/**
+ * 取消が成立したことを知らせる本文。
+ *
+ * 取消は不可逆で、期限を過ぎると取り直せない。何をなぜ取り消したかを必ず残す。
+ *
+ * @param reason 「承認がなかったため」「LINE からの操作」など
+ */
+export function formatCancellationBody(
+  slotKey: string,
+  reason: string,
+  at: Date,
+): string {
+  return [
+    "予約を取り消しました。",
+    "",
+    `■ 取り消したコマ`,
+    `  ・${slotKey}`,
+    "",
+    `理由: ${reason}`,
+    "取り消したコマは他の人が予約できる状態に戻ります。",
+    `予約システム: ${RESERVATION_URL}`,
+    `実行時刻: ${toJst(at)}`,
+  ].join("\n");
+}
+
 /** メール本文を組み立てる。signature は buildSignature の出力。 */
 export function formatBody(signature: string, at: Date): string {
   return [

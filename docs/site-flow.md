@@ -178,12 +178,82 @@ POST /toshima/WebR/Yoyaku/WgR_ShousaiShinsei
 `id=btnConfirm`（「はい」/「いいえ」）はログアウト確認ダイアログのもので、
 予約の確定とは無関係。混同しないこと。
 
-### 8. 申込確認 → 申込完了（未解析）
+### 8. 申込確認 → 申込完了
 
-パンくずから、詳細申請の後に **申込確認** と **申込完了** の 2 画面が続く。
-この 2 画面は実際に予約を成立させないと到達できないため未調査。
+```
+POST /Yoyaku/WgR_YoyakuKakunin
+__EVENTTARGET=next
+```
 
 **注意**: ここから先は取り消しに施設規定（期限・手数料）が伴う。
+
+**応答から成否は判定できない。** 申込完了画面にも `__doPostBack('next','')` が
+含まれるため、「申込確認画面のままかどうか」では区別できない。成立の確認は
+予約一覧（下記）を読んで行う。
+
+**面は照合できない。** 庭球場の 4 コマは `checktime` の面番号（01〜04）で区別
+されるが、サイトはどのコマでも室場名を「庭球場 １面」と表示する。日別・時間帯別・
+申込確認・予約内容の確認、いずれの画面でも同じ。照合できるのは施設・室場名・
+利用日・時間帯・使用料。
+
+## 予約確認・取消フロー（ログイン必要）
+
+### 9. トップページから直接ログイン
+
+コマ選択を経由する必要はない。
+
+```
+POST /Home/WgR_ModeSelect   __EVENTTARGET=login
+POST /Home/WgR_Login        __EVENTTARGET=nextlogin  txtUserID / txtPassWord
+```
+
+### 10. 予約内容の確認・取消
+
+マイメニューの「予約内容の確認・取消」。遷移先 URL は画面の form action から取る
+（画面ごとに変わるため決め打ちにしない）。
+
+```
+POST <form action>   __EVENTTARGET=yoyaku
+→ /YoyakuKakunin/WgR_YoyakukakuninTorikeshi
+```
+
+予約 1 件が `div#body div.item` 1 つに対応し、`dl` の class で項目が分かれる。
+
+| class | 内容 |
+| --- | --- |
+| `status` | 状態（本予約 など） |
+| `date` | 利用日（`2026/8/24(月)`） |
+| `time` | 時間帯（`9:00～11:00`） |
+| `price` | 使用料（`2,000円`） |
+| `cancel` | 取消のチェックボックス |
+
+**取消可否はこの画面が教えてくれる。** 取消期限（使用日の 1 週間前・同一曜日）を
+過ぎた予約には `dl.cancel` の中身が無い。期限内なら次のチェックボックスが出る。
+
+```html
+<input type="checkbox" name="checkCancel" value="1">
+```
+
+`value` は予約行のインデックス（`__doPostBack('shousai','N')` の N と同じ）。
+
+**登録済施設グループのダイアログにも同じ形の `div.item` がある。** `#body` の
+配下に絞って読む。
+
+### 11. 予約取消確認 → 予約取消完了
+
+```
+POST <form action>   __EVENTTARGET=next  checkCancel=<value>
+→ /YoyakuKakunin/WgR_YoyakuTorikeshiKakunin
+POST <form action>   __EVENTTARGET=next   ← ここで取消が確定する
+```
+
+取消確認画面は施設名・利用日・時間帯を表示するので、確定前に照合できる。
+申込完了と同じく、取消完了画面の内容では成否を判定せず予約一覧を読み直す。
+
+### 内側の画面には `yoyaku` が無い
+
+申込完了・取消確認などの画面のナビゲーションには「予約内容の確認・取消」
+（`yoyaku`）が含まれない。一覧に戻るときは `menu` を経由する。
 
 ## 実装上の注意
 

@@ -1,6 +1,8 @@
 import { test, expect, describe } from "bun:test";
 import {
+  CANCELLED_SUBJECT,
   buildSignature,
+  formatCancellationBody,
   decideNotification,
   formatBody,
   formatGoneBody,
@@ -298,5 +300,38 @@ describe("formatBody", () => {
     expect(formatBody("x", at)).toContain(
       "https://www2.pf489.com/toshima/WebR",
     );
+  });
+});
+
+describe("formatCancellationBody", () => {
+  const at = new Date("2026-08-03T09:30:00Z"); // JST 18:30
+
+  test("取り消したコマと理由を示す", () => {
+    const body = formatCancellationBody(
+      "2026-08-24 第4面 9:00～11:00",
+      "承認がなかったため",
+      at,
+    );
+    expect(body).toContain("2026-08-24 第4面 9:00～11:00");
+    expect(body).toContain("承認がなかったため");
+  });
+
+  test("取り消した旨を明記する（予約通知と紛れないように）", () => {
+    expect(
+      formatCancellationBody("2026-08-24 第4面 9:00～11:00", "手動操作", at),
+    ).toContain("取り消しました");
+  });
+
+  test("実行時刻を JST で表示する", () => {
+    expect(
+      formatCancellationBody("2026-08-24 第4面 9:00～11:00", "手動操作", at),
+    ).toContain("2026-08-03 18:30 JST");
+  });
+});
+
+describe("CANCELLED_SUBJECT", () => {
+  test("予約通知・空き通知と区別できる", () => {
+    expect(CANCELLED_SUBJECT).not.toBe(subjectFor("reserved"));
+    expect(CANCELLED_SUBJECT).toContain("取消");
   });
 });

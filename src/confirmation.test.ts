@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   formatSiteDate,
-  formatSiteCourt,
+  verifyCancellationScreen,
   verifyConfirmation,
   cancellationDeadline,
 } from "./confirmation";
@@ -15,14 +15,19 @@ const TARGET: TimeSlot = {
   checktimeValue: "0050220260803019:00～11:00",
 };
 
-/** 申込確認画面の表示を模した最小のテキスト。 */
+/**
+ * 申込確認画面の表示を模した最小のテキスト。
+ *
+ * 室場名の「１面」は**どのコマを選んでも常にこの表示**になる。サイトは 4 つの
+ * コマ（checktime の面番号 01〜04）を区別して表示しない。
+ */
 function confirmationHtml(
-  overrides: { date?: string; time?: string; court?: string } = {},
+  overrides: { date?: string; time?: string; room?: string } = {},
 ) {
   const date = overrides.date ?? "2026/8/3(月)";
   const time = overrides.time ?? "9:00～11:00";
-  const court = overrides.court ?? "１面";
-  return `<div>総合体育場 庭球場 ${court}</div>
+  const room = overrides.room ?? "総合体育場 庭球場 １面";
+  return `<div>${room}</div>
     <div>利用日 ${date}</div>
     <div>時間帯 ${time}</div>
     <div>施設使用料 2,000 円</div>
@@ -36,17 +41,6 @@ describe("formatSiteDate", () => {
 
   test("2 桁の月日もそのまま扱える", () => {
     expect(formatSiteDate("2026-12-25")).toBe("2026/12/25");
-  });
-});
-
-describe("formatSiteCourt", () => {
-  test("面番号を全角にする（サイト表示が「１面」のため）", () => {
-    expect(formatSiteCourt("01")).toBe("１面");
-    expect(formatSiteCourt("4")).toBe("４面");
-  });
-
-  test("2 桁の面番号も各桁を全角にする", () => {
-    expect(formatSiteCourt("12")).toBe("１２面");
   });
 });
 
@@ -67,10 +61,18 @@ describe("verifyConfirmation", () => {
     ).toThrow(/時間帯/);
   });
 
-  test("面が違えば確定させない", () => {
+  test("面は照合しない（サイトがコマごとに区別して表示しないため）", () => {
+    // 実サイトは checktime の面番号 01〜04 のどれを選んでも室場名を「１面」と
+    // 表示する。面を照合すると 2〜4 面の予約が必ず中断してしまう。
+    const fourth: TimeSlot = { ...TARGET, courtNo: "04" };
+    expect(() => verifyConfirmation(confirmationHtml(), fourth)).not.toThrow();
+  });
+
+  test("別の施設・室場を表示していれば確定させない", () => {
+    // 面が照合できない代わりに、施設と室場までは照合する
     expect(() =>
-      verifyConfirmation(confirmationHtml({ court: "２面" }), TARGET),
-    ).toThrow(/面/);
+      verifyConfirmation(confirmationHtml({ room: "豊島体育館 体育室" }), TARGET),
+    ).toThrow(/庭球場/);
   });
 
   test("そもそも申込確認画面でなければ確定させない", () => {
@@ -96,5 +98,42 @@ describe("cancellationDeadline", () => {
 
   test("月をまたぐ場合も正しく引く", () => {
     expect(cancellationDeadline("2026-09-02")).toBe("2026-08-26");
+  });
+});
+
+const cancelHtml = await Bun.file("fixtures/cancel-confirm.html").text();
+
+describe("verifyCancellationScreen", () => {
+  const TARGET_RESERVATION = { date: "2026-08-24", timeRange: "9:00～11:00" };
+
+  test("取消確認画面の内容が対象と一致すれば通す", () => {
+    expect(() =>
+      verifyCancellationScreen(cancelHtml, TARGET_RESERVATION),
+    ).not.toThrow();
+  });
+
+  test("利用日が違えば取消させない", () => {
+    expect(() =>
+      verifyCancellationScreen(cancelHtml, {
+        date: "2026-08-31",
+        timeRange: "9:00～11:00",
+      }),
+    ).toThrow(/利用日/);
+  });
+
+  test("時間帯が違えば取消させない", () => {
+    expect(() =>
+      verifyCancellationScreen(cancelHtml, {
+        date: "2026-08-24",
+        timeRange: "13:00～15:00",
+      }),
+    ).toThrow(/時間帯/);
+  });
+
+  test("そもそも取消確認画面でなければ取消させない", () => {
+    // 「取消」ボタンが無い画面に確定を送らない
+    expect(() =>
+      verifyCancellationScreen("<div>予約はありません</div>", TARGET_RESERVATION),
+    ).toThrow(/取消確認画面/);
   });
 });

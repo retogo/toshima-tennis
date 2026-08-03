@@ -9,31 +9,39 @@
  */
 import type { TimeSlot } from "./parser";
 
-const FULL_WIDTH_DIGITS = "０１２３４５６７８９";
-
 /** "2026-08-03" → "2026/8/3"（サイト表示はゼロ埋めなし） */
 export function formatSiteDate(date: string): string {
   const [year, month, day] = date.split("-");
   return `${year}/${Number(month)}/${Number(day)}`;
 }
 
-/** "01" → "１面"（サイト表示は全角） */
-export function formatSiteCourt(courtNo: string): string {
-  const digits = String(Number(courtNo))
-    .split("")
-    .map((d) => FULL_WIDTH_DIGITS[Number(d)])
-    .join("");
-  return `${digits}面`;
-}
+/** 照合する施設・室場。サイトはこの並びで見出しに出す。 */
+const EXPECTED_ROOM = "総合体育場 庭球場";
 
 /**
  * 申込確認画面が、予約したいコマを表示しているか確かめる。
  * 一致しなければ例外を投げ、確定 POST に進ませない。
+ *
+ * **面は照合できない。** サイトは庭球場の 4 コマ（checktime の面番号 01〜04）を
+ * 区別して表示せず、室場名をどのコマでも「庭球場 １面」と出す。日別・時間帯別・
+ * 申込確認・予約内容の確認、いずれの画面でも同じ。面を照合すると 2〜4 面の予約が
+ * 必ず中断するため、照合対象から外している（実測で第 4 面の予約が
+ * 「期待: ４面」で止まった）。
+ *
+ * 代わりに施設・室場までは照合する。確定してよいかの判断に効くのは
+ * 施設・利用日・時間帯で、これらはすべて画面から確認できる。面が入れ替わった
+ * 場合の影響は「同じ施設・同じ日・同じ時間の別のコマ」に留まる。
  */
 export function verifyConfirmation(html: string, slot: TimeSlot): void {
   if (!html.includes("__doPostBack('next','')")) {
     throw new Error(
       "申込確認画面が取得できていません（「申込」ボタンが見つかりません）",
+    );
+  }
+
+  if (!html.includes(EXPECTED_ROOM)) {
+    throw new Error(
+      `申込確認画面の施設・室場が一致しません（期待: ${EXPECTED_ROOM}）`,
     );
   }
 
@@ -49,11 +57,42 @@ export function verifyConfirmation(html: string, slot: TimeSlot): void {
       `申込確認画面の時間帯が一致しません（期待: ${slot.timeRange}）`,
     );
   }
+}
 
-  const expectedCourt = formatSiteCourt(slot.courtNo);
-  if (!html.includes(expectedCourt)) {
+/**
+ * 予約取消確認画面が、取り消したい予約を表示しているか確かめる。
+ * 一致しなければ例外を投げ、取消の確定 POST に進ませない。
+ *
+ * **取消も不可逆。** 取り消したコマはすぐ他の人に取られるうえ、取消期限を過ぎると
+ * 取り直しもできない。別の予約を取り消してしまう事故を防ぐため、予約の確定と
+ * 同じ強さで照合する。面を照合できない理由は verifyConfirmation と同じ。
+ */
+export function verifyCancellationScreen(
+  html: string,
+  reservation: { date: string; timeRange: string },
+): void {
+  if (!html.includes("__doPostBack('next','')")) {
     throw new Error(
-      `申込確認画面の面が一致しません（期待: ${expectedCourt}、時間帯: ${slot.timeRange}）`,
+      "取消確認画面が取得できていません（「取消」ボタンが見つかりません）",
+    );
+  }
+
+  if (!html.includes(EXPECTED_ROOM)) {
+    throw new Error(
+      `取消確認画面の施設・室場が一致しません（期待: ${EXPECTED_ROOM}）`,
+    );
+  }
+
+  const expectedDate = formatSiteDate(reservation.date);
+  if (!html.includes(expectedDate)) {
+    throw new Error(
+      `取消確認画面の利用日が一致しません（期待: ${expectedDate}）`,
+    );
+  }
+
+  if (!html.includes(reservation.timeRange)) {
+    throw new Error(
+      `取消確認画面の時間帯が一致しません（期待: ${reservation.timeRange}）`,
     );
   }
 }

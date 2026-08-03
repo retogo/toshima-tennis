@@ -12,6 +12,18 @@ export function extractToken(html: string): string {
   return input.getAttribute("value")!;
 }
 
+/**
+ * 画面の form action を取り出す。
+ *
+ * ログイン後の画面遷移は URL を決め打ちにできない（マイメニュー・予約一覧・
+ * 取消確認で action が変わる）。今いる画面の form から次の POST 先を得る。
+ */
+export function extractFormAction(html: string): string {
+  const action = parse(html).querySelector("form")?.getAttribute("action");
+  if (!action) throw new Error("form の action が見つかりません");
+  return action;
+}
+
 /** hidden 以外も含め、input の value を名前で取り出す。 */
 export function extractInputValue(html: string, name: string): string {
   const input = parse(html).querySelector(`input[name="${name}"]`);
