@@ -22,10 +22,10 @@ const OUT_DIR = process.env.RICHMENU_OUT_DIR ?? ".richmenu";
 const IMAGE_PATH = `${OUT_DIR}/richmenu.png`;
 const HTML_PATH = "scripts/richmenu.html";
 
-/** 横 3 分割。richmenu.html の grid-template-columns と必ず揃える。 */
+/** 横 4 分割。richmenu.html の grid-template-columns と必ず揃える。 */
 const WIDTH = 2500;
 const HEIGHT = 843;
-const COLUMNS = 3;
+const COLUMNS = 4;
 
 const CHROME =
   process.env.CHROME_BIN ??
@@ -44,6 +44,7 @@ const CELLS: { label: string; text: string }[] = [
   { label: "予約状況", text: TERMS.status },
   { label: "自動で予約", text: TERMS.auto },
   { label: "押したら予約", text: TERMS.approve },
+  { label: "希望条件", text: TERMS.settings },
 ];
 
 if (CELLS.length !== COLUMNS) {

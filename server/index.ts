@@ -37,9 +37,17 @@ const cancelJob = required("CANCEL_JOB");
  * mode.txt が無いときの既定モード。poll と同じ値を出すため reserve.json から読む。
  * イメージに同梱されている（Dockerfile が COPY している）。
  */
-const defaultMode = parseConfig(
+const baseConfig = parseConfig(
   await Bun.file(process.env.RESERVE_CONFIG ?? "reserve.json").text(),
-).mode;
+);
+const defaultMode = baseConfig.mode;
+/** 上書きが無いときに希望条件として出す値。poll と同じ既定を使う。 */
+const firstWish = baseConfig.wishlist.wishes[0] ?? {};
+const defaultWishes = {
+  maxPerMonth: baseConfig.wishlist.maxPerMonth,
+  daysOfWeek: firstWish.daysOfWeek ?? [],
+  timeRanges: firstWish.timeRanges ?? [],
+};
 /** 承認の記録先。予約システムの認証情報とは別で、webhook でも書き換える。 */
 const state = stateStoreFromEnv();
 const port = Number(process.env.PORT ?? 8080);
@@ -75,7 +83,7 @@ Bun.serve({
         // Job 起動は HTTP 1 回なので待っても応答は遅くならない。
         await dispatchCommands(
           commands,
-          { jobTarget, cancelJob, channelAccessToken, defaultMode },
+          { jobTarget, cancelJob, channelAccessToken, defaultMode, defaultWishes },
           { state },
         );
 

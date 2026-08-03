@@ -14,25 +14,8 @@ import type { ReserveMode } from "./config";
 import { reservationKey, type Reservation } from "./reservations";
 import type { TrackedState } from "./tracked";
 
-/** 動作モードの上書きの置き場 */
-export const MODE_KEY = "mode.txt";
 /** 予約一覧スナップショットの置き場 */
 export const SNAPSHOT_KEY = "reservations.json";
-
-const MODES: ReserveMode[] = ["approve", "auto"];
-
-/**
- * 保存されている動作モードを読む。
- *
- * **知らない値は無視して undefined を返す。** 例外にすると poll が起動しなくなり、
- * 通知も予約も止まる。既定（reserve.json の値）に落ちるほうが安全。
- */
-export function parseModeOverride(text: string): ReserveMode | undefined {
-  const value = text.trim();
-  return MODES.includes(value as ReserveMode)
-    ? (value as ReserveMode)
-    : undefined;
-}
 
 export interface ReservationSnapshot {
   /** 取得時刻（ISO 8601）。キャッシュの古さを伝えるために持つ */

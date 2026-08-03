@@ -69,6 +69,10 @@ export async function verifySignature(
  *   status  … 予約一覧と取消期限を表示する
  *   mode    … 動作モードを切り替える（slot に approve / auto が入る）
  *   menu    … 操作メニューを表示する（テキストを受け取ったとき）
+ *   settings… 希望条件を表示する
+ *   day     … 希望する曜日を入れ替える（slot に 0〜6）
+ *   time    … 希望する時間帯を入れ替える（slot に "9:00～11:00" 等）
+ *   max     … 月の上限を変える（slot に件数）
  */
 export type CommandAction =
   | "reserve"
@@ -76,7 +80,11 @@ export type CommandAction =
   | "cancel"
   | "status"
   | "mode"
-  | "menu";
+  | "menu"
+  | "settings"
+  | "day"
+  | "time"
+  | "max";
 
 const ACTIONS: CommandAction[] = [
   "reserve",
@@ -84,10 +92,22 @@ const ACTIONS: CommandAction[] = [
   "cancel",
   "status",
   "mode",
+  "settings",
+  "day",
+  "time",
+  "max",
 ];
 
 /** 対象のコマ（や値）を必要とする操作。status / menu は対象を持たない。 */
-const NEEDS_ARGUMENT: CommandAction[] = ["reserve", "approve", "cancel", "mode"];
+const NEEDS_ARGUMENT: CommandAction[] = [
+  "reserve",
+  "approve",
+  "cancel",
+  "mode",
+  "day",
+  "time",
+  "max",
+];
 
 /**
  * テキストで受け付ける用語。
@@ -98,6 +118,7 @@ const NEEDS_ARGUMENT: CommandAction[] = ["reserve", "approve", "cancel", "mode"]
 const TEXT_COMMANDS: Record<string, { action: CommandAction; slot: string }> = {
   メニュー: { action: "menu", slot: "" },
   状況: { action: "status", slot: "" },
+  条件: { action: "settings", slot: "" },
   自動: { action: "mode", slot: "auto" },
   手動: { action: "mode", slot: "approve" },
 };

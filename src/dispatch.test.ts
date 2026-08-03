@@ -12,6 +12,7 @@ const context = {
   cancelJob: "toshima-cancel",
   channelAccessToken: "CHANNEL_TOKEN",
   defaultMode: "approve" as const,
+  defaultWishes: { maxPerMonth: 2, daysOfWeek: [0, 6], timeRanges: [] as string[] },
 };
 
 const SLOT = "2026-08-24 第4面 9:00～11:00";
@@ -253,7 +254,7 @@ describe("dispatchCommands: メニュー・状況・モード", () => {
   test("メニューには保存されている現在のモードを出す", async () => {
     const { calls, fetchFn } = stubFetch();
     const { store } = stubStore();
-    await store.write("mode.txt", "auto");
+    await store.write("settings.json", JSON.stringify({ mode: "auto" }));
     await dispatchCommands(
       [{ action: "menu", slot: "", replyToken: "T" }],
       context,
@@ -273,7 +274,7 @@ describe("dispatchCommands: メニュー・状況・モード", () => {
     );
 
     expect(jobNames(calls)).toEqual([]);
-    expect(current("mode.txt")).toBe("auto");
+    expect(JSON.parse(current("settings.json")).mode).toBe("auto");
   });
 
   test("auto に切り替えたら費用が動くことを応答で伝える", async () => {
@@ -297,7 +298,7 @@ describe("dispatchCommands: メニュー・状況・モード", () => {
       options(fetchFn, store),
     );
 
-    expect(current("mode.txt")).toBe("");
+    expect(current("settings.json")).toBe("");
     expect(replyFlex(calls)[0]).toContain("不明なモード");
   });
 

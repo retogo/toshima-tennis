@@ -36,13 +36,8 @@ import {
   type Reservation,
 } from "../src/reservations";
 import { reserveSlot } from "../src/reserve";
-import {
-  MODE_KEY,
-  SNAPSHOT_KEY,
-  parseModeOverride,
-  parseSnapshot,
-  serializeSnapshot,
-} from "../src/runtime";
+import { SNAPSHOT_KEY, parseSnapshot, serializeSnapshot } from "../src/runtime";
+import { SETTINGS_KEY, applySettings, parseSettings } from "../src/settings";
 import { stateStoreFromEnv } from "../src/state";
 import {
   hasApprovalWindow,
@@ -118,15 +113,20 @@ async function fetchOpenSlots(
 const baseConfig = await loadConfig();
 
 /**
- * 動作モードは GCS の上書きを優先する（LINE から切り替えられるようにするため）。
- * `reserve.json` はイメージに焼き込まれていて、変えるには再デプロイが必要。
+ * LINE から変えられる項目（モード・月の上限・希望する曜日と時間帯）は GCS の
+ * 上書きを優先する。`reserve.json` はイメージに焼き込まれていて、変えるには
+ * 再デプロイが必要なため。
  */
-const config: ReserveConfig | undefined = baseConfig && {
-  ...baseConfig,
-  mode: parseModeOverride(await state.read(MODE_KEY)) ?? baseConfig.mode,
-};
-if (config && config.mode !== baseConfig!.mode) {
-  console.log(`動作モードの上書きを適用: ${baseConfig!.mode} → ${config.mode}`);
+const overrides = parseSettings(await state.read(SETTINGS_KEY));
+const config: ReserveConfig | undefined =
+  baseConfig && applySettings(baseConfig, overrides);
+if (Object.keys(overrides).length > 0) {
+  console.log(`上書きを適用: ${JSON.stringify(overrides)}`);
+}
+if (config) {
+  console.log(
+    `mode=${config.mode} / 月上限=${config.wishlist.maxPerMonth} / 希望条件=${JSON.stringify(config.wishlist.wishes)}`,
+  );
 }
 
 const slots = await fetchOpenSlots(new ToshimaClient());

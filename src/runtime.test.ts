@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   formatStatus,
-  parseModeOverride,
   parseSnapshot,
   serializeSnapshot,
 } from "./runtime";
@@ -18,32 +17,6 @@ function reservation(overrides: Partial<Reservation> = {}): Reservation {
     ...overrides,
   };
 }
-
-describe("parseModeOverride", () => {
-  test("保存されている mode を読む", () => {
-    expect(parseModeOverride("auto")).toBe("auto");
-    expect(parseModeOverride("approve")).toBe("approve");
-  });
-
-  test("前後の空白を無視する", () => {
-    expect(parseModeOverride(" approve\n")).toBe("approve");
-  });
-
-  test("未設定なら undefined（reserve.json の値を使う）", () => {
-    expect(parseModeOverride("")).toBeUndefined();
-  });
-
-  test("知らない値は無視する（勝手に auto にならない側に倒す）", () => {
-    // 壊れた値で例外にすると poll が止まる。既定に落とすほうが安全
-    expect(parseModeOverride("AUTO")).toBeUndefined();
-    expect(parseModeOverride("garbage")).toBeUndefined();
-  });
-
-  test("廃止した notify は受け付けない", () => {
-    // approve との違いがボタンの有無だけで、モードとして分ける意味が無かった
-    expect(parseModeOverride("notify")).toBeUndefined();
-  });
-});
 
 describe("parseSnapshot / serializeSnapshot", () => {
   const snapshot = {

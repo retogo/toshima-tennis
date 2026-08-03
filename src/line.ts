@@ -8,6 +8,8 @@
  * Actions のログは public リポジトリでは誰でも読めるので、例外に
  * アクセストークンを載せない。
  */
+import { MAX_PER_MONTH_CHOICES, TIME_RANGES } from "./settings";
+
 export const PUSH_ENDPOINT = "https://api.line.me/v2/bot/message/push";
 export const REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 
@@ -162,6 +164,7 @@ export const TERMS = {
   status: "状況",
   auto: "自動",
   approve: "手動",
+  settings: "条件",
 } as const;
 
 /**
@@ -207,6 +210,122 @@ export function buildMenuMessage(currentMode: string): FlexMessage {
               text: isAuto ? TERMS.approve : TERMS.auto,
             },
           },
+        ],
+      },
+    },
+  };
+}
+
+/** 0（日）〜6（土） */
+const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
+
+/** 1 件あたりの施設使用料。上限を選ぶときに支出の目安を出すため。 */
+const FEE_PER_RESERVATION = 2000;
+
+export interface SettingsView {
+  maxPerMonth: number;
+  daysOfWeek: number[];
+  timeRanges: string[];
+}
+
+/** ボタンを横に並べた 1 行を作る。 */
+function buttonRow(
+  buttons: { label: string; data: string; on: boolean }[],
+): unknown {
+  return {
+    type: "box",
+    layout: "horizontal",
+    spacing: "xs",
+    contents: buttons.map((button) => ({
+      type: "button",
+      // 選択中は塗り、外れているものは枠だけ。状態は上の行に文字でも出している
+      style: button.on ? "primary" : "secondary",
+      height: "sm",
+      action: { type: "postback", label: button.label, data: button.data },
+    })),
+  };
+}
+
+function heading(text: string): unknown {
+  return { type: "text", text, size: "sm", weight: "bold", wrap: true };
+}
+
+function value(text: string): unknown {
+  return { type: "text", text, size: "sm", color: "#06c755", wrap: true };
+}
+
+/**
+ * 希望条件（曜日・時間帯・月の上限）を編集する Flex メッセージ。
+ *
+ * **いま何を選んでいるかは文字で出す。** ボタンの塗り分けだけでは分かりにくい。
+ * 曜日・時間帯を全部外すと何にも一致しなくなる（＝予約しない）ので、そうなって
+ * いることが読めるようにする。
+ */
+export function buildSettingsMessage(current: SettingsView): FlexMessage {
+  const days =
+    current.daysOfWeek.length > 0
+      ? current.daysOfWeek.map((d) => DAY_NAMES[d]).join(" ")
+      : "なし（予約しません）";
+  const times =
+    current.timeRanges.length > 0
+      ? current.timeRanges.join("\n")
+      : "指定なし（全部）";
+
+  return {
+    type: "flex",
+    altText: "希望条件",
+    contents: {
+      type: "bubble",
+      size: "giga",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: "希望条件", weight: "bold" },
+
+          heading("曜日"),
+          value(days),
+          buttonRow(
+            DAY_NAMES.map((name, day) => ({
+              label: name!,
+              data: `day:${day}`,
+              on: current.daysOfWeek.includes(day),
+            })),
+          ),
+
+          { type: "separator" },
+          heading("時間帯"),
+          value(times),
+          buttonRow(
+            TIME_RANGES.slice(0, 3).map((range) => ({
+              label: range.split("～")[0]!,
+              data: `time:${range}`,
+              on: current.timeRanges.includes(range),
+            })),
+          ),
+          buttonRow(
+            TIME_RANGES.slice(3).map((range) => ({
+              label: range.split("～")[0]!,
+              data: `time:${range}`,
+              on: current.timeRanges.includes(range),
+            })),
+          ),
+
+          { type: "separator" },
+          heading("月の上限"),
+          value(
+            `${current.maxPerMonth} 件（最大 ${(
+              current.maxPerMonth * FEE_PER_RESERVATION
+            ).toLocaleString()} 円）`,
+          ),
+          buttonRow(
+            MAX_PER_MONTH_CHOICES.map((n) => ({
+              label: `${n} 件`,
+              data: `max:${n}`,
+              on: n === current.maxPerMonth,
+            })),
+          ),
         ],
       },
     },

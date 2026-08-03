@@ -15,18 +15,23 @@
  */
 import {
   buildMenuMessage,
+  buildSettingsMessage,
   buildStatusMessage,
   replyMessages as reply,
+  type SettingsView,
   type StatusRow,
 } from "./line";
 import { runJob, type JobTarget } from "./runjob";
+import { SNAPSHOT_KEY, formatStatus, parseSnapshot } from "./runtime";
 import {
-  MODE_KEY,
-  SNAPSHOT_KEY,
-  formatStatus,
-  parseModeOverride,
-  parseSnapshot,
-} from "./runtime";
+  MAX_PER_MONTH_CHOICES,
+  SETTINGS_KEY,
+  parseSettings,
+  serializeSettings,
+  toggleDay,
+  toggleTimeRange,
+  type RuntimeSettings,
+} from "./settings";
 import { DEFAULT_CANCEL_BUFFER_DAYS, type ReserveMode } from "./config";
 import type { StateStore } from "./state";
 import { approveTracked, parseTracked, serializeTracked } from "./tracked";
@@ -47,6 +52,15 @@ export interface DispatchContext {
    * メニューは別のモードを表示する、という食い違いが起きる。
    */
   defaultMode: ReserveMode;
+  /**
+   * 上書きが無いときに出す希望条件。**poll と同じ既定を渡すこと。**
+   * reserve.json から読む（イメージに同梱されている）。
+   */
+  defaultWishes: {
+    maxPerMonth: number;
+    daysOfWeek: number[];
+    timeRanges: string[];
+  };
 }
 
 export interface DispatchOptions {
@@ -92,12 +106,65 @@ async function approve(
   return `承認しました\n${slot}\n自動取消しません。`;
 }
 
+/** 保存されている上書きを読む。 */
+async function loadSettings(state: StateStore): Promise<RuntimeSettings> {
+  return parseSettings(await state.read(SETTINGS_KEY));
+}
+
 /** 保存されているモード。無ければ呼び出し側が渡した既定（reserve.json の値）。 */
 async function currentMode(
   state: StateStore,
   defaultMode: ReserveMode,
 ): Promise<ReserveMode> {
-  return parseModeOverride(await state.read(MODE_KEY)) ?? defaultMode;
+  return (await loadSettings(state)).mode ?? defaultMode;
+}
+
+/**
+ * 希望条件の編集画面を返す。
+ *
+ * 上書きが無い項目は `reserve.json` の値（呼び出し側が渡す既定）を出す。
+ * 表示と保存で別の値を見ると、押した結果が画面と食い違う。
+ */
+async function settingsView(
+  state: StateStore | undefined,
+  defaults: DispatchContext["defaultWishes"],
+): Promise<SettingsView> {
+  if (!state) throw new Error("設定の保存先が設定されていません");
+
+  const settings = await loadSettings(state);
+  return {
+    maxPerMonth: settings.maxPerMonth ?? defaults.maxPerMonth,
+    daysOfWeek: settings.daysOfWeek ?? defaults.daysOfWeek,
+    timeRanges: settings.timeRanges ?? defaults.timeRanges,
+  };
+}
+
+/** 希望条件を 1 項目変えて保存し、更新後の画面を返す。 */
+async function editSettings(
+  command: Command,
+  state: StateStore | undefined,
+  defaults: DispatchContext["defaultWishes"],
+): Promise<SettingsView> {
+  if (!state) throw new Error("設定の保存先が設定されていません");
+
+  const view = await settingsView(state, defaults);
+  const settings = await loadSettings(state);
+
+  if (command.action === "day") {
+    settings.daysOfWeek = toggleDay(view.daysOfWeek, Number(command.slot));
+  } else if (command.action === "time") {
+    settings.timeRanges = toggleTimeRange(view.timeRanges, command.slot);
+  } else {
+    const wanted = Number(command.slot);
+    // 支出の上限になるので、選べる値の外は受け付けない
+    if (!MAX_PER_MONTH_CHOICES.includes(wanted as 1)) {
+      throw new Error(`月の上限に指定できない値です（${command.slot}）`);
+    }
+    settings.maxPerMonth = wanted;
+  }
+
+  await state.write(SETTINGS_KEY, serializeSettings(settings));
+  return settingsView(state, defaults);
 }
 
 /**
@@ -113,10 +180,11 @@ async function switchMode(
 ): Promise<string> {
   if (!state) throw new Error("モードの保存先が設定されていません");
 
-  const mode = parseModeOverride(value);
+  const mode = value === "auto" || value === "approve" ? value : undefined;
   if (!mode) return `不明なモードです（${value}）`;
 
-  await state.write(MODE_KEY, mode);
+  const settings = await loadSettings(state);
+  await state.write(SETTINGS_KEY, serializeSettings({ ...settings, mode }));
 
   return mode === "auto"
     ? "自動で予約します。予約したら承認/取消のボタンを送ります。承認しないと期限前に取り消します。"
@@ -188,6 +256,20 @@ export async function dispatchCommands(
         text = await approve(command.slot, options.state);
       } else if (command.action === "mode") {
         text = await switchMode(command.slot, options.state);
+      } else if (command.action === "settings") {
+        messages = [
+          buildSettingsMessage(await settingsView(options.state, context.defaultWishes)),
+        ];
+      } else if (
+        command.action === "day" ||
+        command.action === "time" ||
+        command.action === "max"
+      ) {
+        messages = [
+          buildSettingsMessage(
+            await editSettings(command, options.state, context.defaultWishes),
+          ),
+        ];
       } else if (command.action === "menu") {
         messages = [
           buildMenuMessage(await currentMode(options.state!, context.defaultMode)),

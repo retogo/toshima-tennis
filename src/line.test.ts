@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   TERMS,
+  buildSettingsMessage,
   buildMenuMessage,
   buildReservedMessage,
   buildStatusMessage,
@@ -9,6 +10,7 @@ import {
   MAX_BUTTONS,
   PUSH_ENDPOINT,
 } from "./line";
+import { MAX_PER_MONTH_CHOICES, TIME_RANGES } from "./settings";
 
 function stubFetch(response: () => Response) {
   const calls: { url: string; init: RequestInit }[] = [];
@@ -218,5 +220,54 @@ describe("buildStatusMessage", () => {
       buildStatusMessage(text, [{ slot: "2026-08-09 第1面 15:00～17:00", cancellable: false }]),
     );
     expect(json).not.toContain("cancel:2026-08-09");
+  });
+});
+
+describe("buildSettingsMessage", () => {
+  const current = { maxPerMonth: 2, daysOfWeek: [0, 6], timeRanges: [] as string[] };
+
+  test("いま選んでいる曜日を文字で出す（装飾に頼らない）", () => {
+    const json = JSON.stringify(buildSettingsMessage(current));
+    expect(json).toContain("日 土");
+  });
+
+  test("時間帯が空なら「指定なし」と出す", () => {
+    expect(JSON.stringify(buildSettingsMessage(current))).toContain("指定なし");
+  });
+
+  test("選んでいる時間帯を文字で出す", () => {
+    const json = JSON.stringify(
+      buildSettingsMessage({ ...current, timeRanges: ["9:00～11:00"] }),
+    );
+    expect(json).toContain("9:00～11:00");
+  });
+
+  test("曜日は 7 つ、時間帯は 6 つのボタンを出す", () => {
+    const json = JSON.stringify(buildSettingsMessage(current));
+    for (let day = 0; day <= 6; day++) expect(json).toContain(`day:${day}`);
+    for (const range of TIME_RANGES) expect(json).toContain(`time:${range}`);
+  });
+
+  test("月の上限は選べる値のボタンを出す", () => {
+    const json = JSON.stringify(buildSettingsMessage(current));
+    for (const n of MAX_PER_MONTH_CHOICES) expect(json).toContain(`max:${n}`);
+  });
+
+  test("いまの月の上限と支出の目安を出す", () => {
+    const json = JSON.stringify(buildSettingsMessage(current));
+    expect(json).toContain("2 件");
+    expect(json).toContain("4,000");
+  });
+
+  test("曜日が空なら何も予約しないと分かるように出す", () => {
+    const json = JSON.stringify(buildSettingsMessage({ ...current, daysOfWeek: [] }));
+    expect(json).toContain("予約しません");
+  });
+
+  test("ボタンの label は 20 文字を超えない", () => {
+    const json = JSON.stringify(buildSettingsMessage(current));
+    for (const m of json.matchAll(/"label":"([^"]*)"/g)) {
+      expect(m[1]!.length).toBeLessThanOrEqual(20);
+    }
   });
 });

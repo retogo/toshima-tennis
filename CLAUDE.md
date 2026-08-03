@@ -158,10 +158,17 @@ await し切る**。`void (async () => …)()` を書かない。
 poll は `reserve.json` の値で動いているのにメニューは別のモードを表示する食い違いが
 起きる。webhook は `reserve.json` を読んで `DispatchContext.defaultMode` に渡す。
 
-**動作モードは GCS の上書きが優先される。** `reserve.json` はイメージに焼き込まれて
-いるため、LINE から切り替えるには可変の置き場が必要。poll は `mode.txt` があれば
-それを使う。**`reserve.json` を書き換えても上書きが残っていれば効かない**ので、
-挙動が設定と合わないときはまず `gs://<project>-state/mode.txt` を見る。
+**LINE から変えた設定は GCS の `settings.json` にあり、`reserve.json` より優先される。**
+イメージに焼き込まれた `reserve.json` を書き換えても、上書きが残っていれば効かない。
+挙動が設定と合わないときはまず `gs://<project>-state/settings.json` を見る。
+対象は mode / maxPerMonth / daysOfWeek / timeRanges（`src/settings.ts`）。
+
+**月の上限は選択肢の外を受け付けない。** そのまま支出の上限になるので、postback は
+外部入力として扱い `MAX_PER_MONTH_CHOICES` の範囲だけ通す。
+
+**曜日・時間帯の空配列は「何にも一致しない」。** 省略（＝全部が対象）とは意味が違う。
+`matches` は `[]` を真として扱い `includes` が false になるため、全部外すと予約も
+通知も止まる。画面にもそう出す。
 
 **poll も予約システムにログインする。** 月上限の判定と、LINE の状況表示用の
 予約一覧キャッシュのため。terraform の `poll_secrets` に `TOSHIMA_*` が無いと
