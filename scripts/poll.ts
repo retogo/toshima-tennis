@@ -21,6 +21,7 @@ import {
   buildSignature,
   decideNotification,
   formatBody,
+  formatGoneBody,
   formatReservationBody,
   slotKey,
   subjectFor,
@@ -154,10 +155,13 @@ if (decision.kind === "pending") {
     }),
   ]);
 } else {
+  // gone は「なくなったコマ」を出すため、今回ではなく前回の署名から本文を作る
   const body =
     decision.kind === "reserved"
       ? formatReservationBody(reservedKeys, now)
-      : formatBody(signature, now);
+      : decision.kind === "gone"
+        ? formatGoneBody(previous, now)
+        : formatBody(signature, now);
   await pushMessage(lineToken, lineTo, `${subject}\n\n${body}`);
 }
 

@@ -13,8 +13,7 @@
  * webhook 側に置かずに済ませるための分担。webhook は Job を起動するだけで、
  * 利用者番号もパスワードも知らない。
  */
-import { replyMessage } from "../src/line";
-import { runReserveJob } from "../src/runjob";
+import { dispatchReserveCommands } from "../src/dispatch";
 import { extractReserveCommands, verifySignature } from "../src/webhook";
 
 function required(name: string): string {
@@ -59,31 +58,10 @@ Bun.serve({
 
         const commands = extractReserveCommands(body, allowedUserId);
 
-        // LINE は素早い 200 応答を期待する。処理は投げっぱなしにする。
-        for (const { slot, replyToken } of commands) {
-          void (async () => {
-            try {
-              await runReserveJob(jobTarget, slot);
-              console.log(`予約を起動しました: ${slot}`);
-              if (replyToken) {
-                await replyMessage(
-                  channelAccessToken,
-                  replyToken,
-                  `予約処理を開始しました。\n${slot}\n\n結果は改めて通知します。`,
-                );
-              }
-            } catch (e) {
-              console.error("予約の起動に失敗:", (e as Error).message);
-              if (replyToken) {
-                await replyMessage(
-                  channelAccessToken,
-                  replyToken,
-                  `予約の起動に失敗しました。\n${(e as Error).message}`,
-                ).catch(() => {});
-              }
-            }
-          })();
-        }
+        // 200 を返す前に処理し切る。cpu_idle = true のため、レスポンス後に
+        // 投げっぱなしにした処理には CPU が割り当てられず走らない。
+        // Job 起動は HTTP 1 回なので待っても応答は遅くならない。
+        await dispatchReserveCommands(commands, { jobTarget, channelAccessToken });
 
         return new Response("ok");
       },

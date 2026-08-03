@@ -3,6 +3,7 @@ import {
   buildSignature,
   decideNotification,
   formatBody,
+  formatGoneBody,
   formatReservationBody,
   subjectFor,
   RESERVATION_URL,
@@ -82,13 +83,15 @@ describe("decideNotification", () => {
     expect(d.shouldEmail).toBe(true);
   });
 
-  test("空きが消えたら通知はしないが状態は更新する", () => {
+  test("空きが消えたら状態を更新し、なくなったことを通知する", () => {
+    // 送信済みのボタン付き通知を無効化する手段が通知しかないため、
+    // ここで黙ると押しても予約できないボタンが残ったままになる。
     const d = decideNotification("", "2026-07-30 第2面 11:00～13:00");
     expect(d).toEqual({
       hasAvailability: false,
       stateChanged: true,
-      shouldEmail: false,
-      kind: "none",
+      shouldEmail: true,
+      kind: "gone",
     });
   });
 
@@ -125,10 +128,30 @@ describe("decideNotification: 予約が成立したとき", () => {
 });
 
 describe("decideNotification: 承認待ちのとき", () => {
-  test("承認待ちがあれば空き状況の変化にかかわらず通知する", () => {
+  test("候補が新しく出たらボタン付きで通知する", () => {
+    const d = decideNotification("2026-08-08 第1面 9:00～11:00", "", {
+      hasPending: true,
+    });
+    expect(d.shouldEmail).toBe(true);
+    expect(d.kind).toBe("pending");
+  });
+
+  test("候補が前回と同じなら通知しない（10 分ごとの再送を止める）", () => {
+    // approve モードでは候補がある間ずっと hasPending が立つ。変化検知を通さないと
+    // ポーリングのたびに push され、月 200 通の無料枠を 2 日で使い切る。
     const sig = "2026-08-08 第1面 9:00～11:00";
     const d = decideNotification(sig, sig, { hasPending: true });
     expect(d.stateChanged).toBe(false);
+    expect(d.shouldEmail).toBe(false);
+    expect(d.kind).toBe("none");
+  });
+
+  test("候補が増えたら再通知する", () => {
+    const d = decideNotification(
+      "2026-08-08 第1面 9:00～11:00\n2026-08-09 第2面 17:00～19:00",
+      "2026-08-08 第1面 9:00～11:00",
+      { hasPending: true },
+    );
     expect(d.shouldEmail).toBe(true);
     expect(d.kind).toBe("pending");
   });
@@ -138,8 +161,49 @@ describe("decideNotification: 承認待ちのとき", () => {
     expect(d.kind).toBe("reserved");
   });
 
+  test("予約成立の通知は候補と違い、変化していなくても送る", () => {
+    const sig = "2026-08-08 第1面 9:00～11:00";
+    expect(decideNotification(sig, sig, { reservedCount: 1 }).kind).toBe("reserved");
+  });
+
   test("承認待ちが無ければ従来どおり", () => {
     expect(decideNotification("x", "", {}).kind).toBe("availability");
+  });
+});
+
+describe("decideNotification: 候補がなくなったとき", () => {
+  // 送信済みメッセージを編集する API は LINE に無いため、ボタンが使えなく
+  // なったことは新しい通知で伝えるしかない。
+  test("候補が 0 件になったら通知する", () => {
+    const d = decideNotification("", "2026-08-09 第2面 17:00～19:00");
+    expect(d.hasAvailability).toBe(false);
+    expect(d.shouldEmail).toBe(true);
+    expect(d.kind).toBe("gone");
+  });
+
+  test("0 件が続く間は通知しない", () => {
+    expect(decideNotification("", "")).toEqual({
+      hasAvailability: false,
+      stateChanged: false,
+      shouldEmail: false,
+      kind: "none",
+    });
+  });
+
+  test("自分の予約で 0 件になった場合は予約通知を優先する", () => {
+    const d = decideNotification("", "2026-08-08 第1面 9:00～11:00", {
+      reservedCount: 1,
+    });
+    expect(d.kind).toBe("reserved");
+  });
+
+  test("候補が減っただけなら候補通知のまま", () => {
+    const d = decideNotification(
+      "2026-08-09 第2面 17:00～19:00",
+      "2026-08-09 第2面 17:00～19:00\n2026-08-09 第4面 17:00～19:00",
+      { hasPending: true },
+    );
+    expect(d.kind).toBe("pending");
   });
 });
 
@@ -147,6 +211,39 @@ describe("subjectFor", () => {
   test("予約と空き検知で件名を区別する", () => {
     expect(subjectFor("reserved")).not.toBe(subjectFor("availability"));
     expect(subjectFor("reserved")).toContain("予約");
+  });
+
+  test("候補がなくなった通知は他と区別できる", () => {
+    expect(subjectFor("gone")).not.toBe(subjectFor("availability"));
+    expect(subjectFor("gone")).not.toBe(subjectFor("pending"));
+  });
+});
+
+describe("formatGoneBody", () => {
+  const at = new Date("2026-07-27T09:30:00Z"); // JST 18:30
+
+  test("なくなったコマを列挙する", () => {
+    const body = formatGoneBody(
+      "2026-08-09 第2面 17:00～19:00\n2026-08-09 第4面 17:00～19:00",
+      at,
+    );
+    expect(body).toContain("・2026-08-09 第2面 17:00～19:00");
+    expect(body).toContain("・2026-08-09 第4面 17:00～19:00");
+  });
+
+  test("先に送ったボタンが使えないことを伝える", () => {
+    // 送信済みメッセージは編集できないので、本文で無効になった旨を伝える
+    const body = formatGoneBody("2026-08-09 第2面 17:00～19:00", at);
+    expect(body).toContain("ボタン");
+  });
+
+  test("埋まったと断定しない（候補日が過ぎた場合もある）", () => {
+    const body = formatGoneBody("2026-08-09 第2面 17:00～19:00", at);
+    expect(body).not.toContain("埋まりました");
+  });
+
+  test("最終確認時刻を JST で表示する", () => {
+    expect(formatGoneBody("x", at)).toContain("2026-07-27 18:30 JST");
   });
 });
 
