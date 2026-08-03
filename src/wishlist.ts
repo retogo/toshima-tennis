@@ -70,14 +70,31 @@ function matches(slot: TimeSlot, wish: Wish): boolean {
  * 希望条件に一致する空きコマを、上限を適用せずすべて返す（日時の早い順）。
  * 承認待ちの通知に「他の候補」を載せるために使う。
  */
+/**
+ * 予約済みの識別子を「利用日 時間帯」に正規化する。
+ *
+ * サイトは庭球場のコマを面で区別して表示しないため、予約一覧から面が読めない。
+ * 面まで含めて突き合わせると、同じ日時の別の面をもう 1 枠取ってしまう。
+ * 従来の面つきの記録（"2026-08-24 第4面 9:00～11:00"）も同じキーに寄せる。
+ */
+function occupiedKey(key: string): string {
+  const m = key.match(/^(\d{4}-\d{2}-\d{2}) 第\d+面 (.+)$/);
+  return m ? `${m[1]} ${m[2]}` : key;
+}
+
+/** コマ側も同じキーに揃える。 */
+function slotOccupiedKey(slot: TimeSlot): string {
+  return `${slot.date} ${slot.timeRange}`;
+}
+
 export function matchingSlots(
   slots: TimeSlot[],
   wishlist: Wishlist,
   reserved: string[],
 ): TimeSlot[] {
-  const reservedKeys = new Set(reserved);
+  const occupied = new Set(reserved.map(occupiedKey));
   return slots
-    .filter((slot) => !reservedKeys.has(slotKey(slot)))
+    .filter((slot) => !occupied.has(slotOccupiedKey(slot)))
     .filter((slot) => wishlist.wishes.some((wish) => matches(slot, wish)))
     .sort(compareChronologically);
 }

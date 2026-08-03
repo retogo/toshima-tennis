@@ -61,6 +61,24 @@ export async function verifySignature(
   );
 }
 
+/**
+ * ボタンが表す操作。
+ *   reserve … 候補を予約する
+ *   approve … 自動予約した予約を承認する（自動取消の対象から外す）
+ *   cancel  … 予約を取り消す
+ */
+export type CommandAction = "reserve" | "approve" | "cancel";
+
+const ACTIONS: CommandAction[] = ["reserve", "approve", "cancel"];
+
+export interface Command {
+  action: CommandAction;
+  /** 対象のコマ（slotKey 形式） */
+  slot: string;
+  /** 応答メッセージ用のトークン（応答は無料枠を消費しない） */
+  replyToken: string;
+}
+
 export interface ReserveCommand {
   /** 予約するコマ（slotKey 形式） */
   slot: string;
@@ -68,31 +86,47 @@ export interface ReserveCommand {
   replyToken: string;
 }
 
-const PREFIX = "reserve:";
-
 /**
- * Webhook の本文から、自分が出した予約指示だけを取り出す。
+ * Webhook の本文から、自分が出した操作指示だけを取り出す。
  * 自分以外の userId、postback 以外のイベント、想定外の data はすべて捨てる。
+ *
+ * **取消も第三者に叩かせてはいけない。** 予約と同じく userId を照合する。
  */
-export function extractReserveCommands(
+export function extractCommands(
   body: unknown,
   allowedUserId: string,
-): ReserveCommand[] {
+): Command[] {
   const events = (body as { events?: unknown })?.events;
   if (!Array.isArray(events)) return [];
 
-  const commands: ReserveCommand[] = [];
+  const commands: Command[] = [];
   for (const event of events) {
     if (event?.type !== "postback") continue;
     if (event?.source?.userId !== allowedUserId) continue;
 
     const data = event?.postback?.data;
-    if (typeof data !== "string" || !data.startsWith(PREFIX)) continue;
+    if (typeof data !== "string") continue;
 
-    const slot = data.slice(PREFIX.length).trim();
+    const separator = data.indexOf(":");
+    if (separator < 0) continue;
+
+    const action = data.slice(0, separator) as CommandAction;
+    if (!ACTIONS.includes(action)) continue;
+
+    const slot = data.slice(separator + 1).trim();
     if (!slot) continue;
 
-    commands.push({ slot, replyToken: String(event.replyToken ?? "") });
+    commands.push({ action, slot, replyToken: String(event.replyToken ?? "") });
   }
   return commands;
+}
+
+/** 予約指示だけを取り出す（従来の呼び出し口）。 */
+export function extractReserveCommands(
+  body: unknown,
+  allowedUserId: string,
+): ReserveCommand[] {
+  return extractCommands(body, allowedUserId)
+    .filter((c) => c.action === "reserve")
+    .map(({ slot, replyToken }) => ({ slot, replyToken }));
 }

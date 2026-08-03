@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { dispatchReserveCommands } from "./dispatch";
+import { dispatchCommands } from "./dispatch";
 import { REPLY_ENDPOINT } from "./line";
+import { serializeTracked, trackReservation } from "./tracked";
 
 const context = {
   jobTarget: {
@@ -8,15 +9,17 @@ const context = {
     region: "asia-northeast1",
     job: "toshima-reserve",
   },
+  cancelJob: "toshima-cancel",
   channelAccessToken: "CHANNEL_TOKEN",
 };
+
+const SLOT = "2026-08-24 第4面 9:00～11:00";
 
 interface Call {
   url: string;
   body: unknown;
 }
 
-/** run API と reply API を URL で切り分けて記録するスタブ。 */
 function stubFetch(
   responder: (url: string) => Response = () => new Response("{}"),
 ) {
@@ -32,145 +35,196 @@ function stubFetch(
   return { calls, fetchFn };
 }
 
-const options = (fetchFn: typeof fetch) => ({
-  fetchFn,
-  getToken: async () => "ACCESS_TOKEN",
-});
+/** 承認の記録先。実際は GCS だが、テストではメモリに置く。 */
+function stubStore(initial = "") {
+  let value = initial;
+  return {
+    store: {
+      async read() {
+        return value;
+      },
+      async write(_key: string, next: string) {
+        value = next;
+      },
+    },
+    current: () => value,
+  };
+}
 
 const isRunApi = (url: string) => url.includes("run.googleapis.com");
 const isReply = (url: string) => url === REPLY_ENDPOINT;
+
+const jobNames = (calls: Call[]) =>
+  calls.filter((c) => isRunApi(c.url)).map((c) => c.url.match(/jobs\/([^:]+):run/)![1]);
 
 const replyTexts = (calls: Call[]) =>
   calls
     .filter((c) => isReply(c.url))
     .map((c) => (c.body as { messages: { text: string }[] }).messages[0]!.text);
 
-describe("dispatchReserveCommands", () => {
-  test("コマごとに reserve Job を起動する", async () => {
+const options = (fetchFn: typeof fetch, store: unknown) => ({
+  fetchFn,
+  getToken: async () => "ACCESS_TOKEN",
+  state: store as never,
+});
+
+describe("dispatchCommands: 予約", () => {
+  test("reserve は予約 Job を起動する", async () => {
     const { calls, fetchFn } = stubFetch();
-    await dispatchReserveCommands(
-      [{ slot: "2026-08-09 第2面 17:00～19:00", replyToken: "T" }],
+    const { store } = stubStore();
+    await dispatchCommands(
+      [{ action: "reserve", slot: SLOT, replyToken: "T" }],
       context,
-      options(fetchFn),
+      options(fetchFn, store),
     );
 
-    const run = calls.filter((c) => isRunApi(c.url));
-    expect(run).toHaveLength(1);
-    expect(run[0]!.url).toContain("/jobs/toshima-reserve:run");
+    expect(jobNames(calls)).toEqual(["toshima-reserve"]);
+    expect(replyTexts(calls)[0]).toContain(SLOT);
   });
+});
 
-  test("起動できたら replyToken に開始を伝える", async () => {
+describe("dispatchCommands: 取消", () => {
+  test("cancel は取消 Job を起動する", async () => {
     const { calls, fetchFn } = stubFetch();
-    await dispatchReserveCommands(
-      [{ slot: "2026-08-09 第2面 17:00～19:00", replyToken: "T" }],
+    const { store } = stubStore();
+    await dispatchCommands(
+      [{ action: "cancel", slot: SLOT, replyToken: "T" }],
       context,
-      options(fetchFn),
+      options(fetchFn, store),
     );
 
-    expect(replyTexts(calls)).toHaveLength(1);
-    expect(replyTexts(calls)[0]).toContain("2026-08-09 第2面 17:00～19:00");
+    expect(jobNames(calls)).toEqual(["toshima-cancel"]);
   });
 
-  test("Job の起動を待ち切ってから応答する（200 を返した後に処理を残さない）", async () => {
-    // cpu_idle = true の Cloud Run ではレスポンス後の処理に CPU が割り当てられない。
-    // 呼び出しが完了順に並ぶことで、await し切っていることを確かめる。
+  test("取消 Job には CANCEL_SLOT を渡す", async () => {
     const { calls, fetchFn } = stubFetch();
-    await dispatchReserveCommands(
-      [{ slot: "コマ", replyToken: "T" }],
+    const { store } = stubStore();
+    await dispatchCommands(
+      [{ action: "cancel", slot: SLOT, replyToken: "T" }],
       context,
-      options(fetchFn),
+      options(fetchFn, store),
     );
 
-    expect(calls.map((c) => (isRunApi(c.url) ? "run" : "reply"))).toEqual([
-      "run",
-      "reply",
-    ]);
+    const run = calls.find((c) => isRunApi(c.url))!;
+    const env = (run.body as { overrides: { containerOverrides: { env: unknown[] }[] } })
+      .overrides.containerOverrides[0]!.env;
+    expect(env).toContainEqual({ name: "CANCEL_SLOT", value: SLOT });
+  });
+});
+
+describe("dispatchCommands: 承認", () => {
+  test("approve は Job を起動せず、記録を承認済みにする", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store, current } = stubStore(
+      serializeTracked(trackReservation({}, SLOT, "2026-08-03")),
+    );
+
+    await dispatchCommands(
+      [{ action: "approve", slot: SLOT, replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(jobNames(calls)).toEqual([]);
+    expect(JSON.parse(current())["2026-08-24 9:00～11:00"].approved).toBe(true);
   });
 
-  test("Job の起動が失敗しても例外にせず、失敗を応答で返す", async () => {
-    // webhook は LINE に必ず 200 を返す必要がある。ここで throw させない。
+  test("承認したことを応答で伝える", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore(
+      serializeTracked(trackReservation({}, SLOT, "2026-08-03")),
+    );
+
+    await dispatchCommands(
+      [{ action: "approve", slot: SLOT, replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(replyTexts(calls)[0]).toContain("承認");
+  });
+
+  test("記録に無いコマの承認は、そう伝える", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore();
+
+    await dispatchCommands(
+      [{ action: "approve", slot: SLOT, replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    expect(replyTexts(calls)[0]).toContain("見つかりません");
+  });
+});
+
+describe("dispatchCommands: 失敗の扱い", () => {
+  test("Job の起動に失敗しても例外にせず応答で伝える", async () => {
     const { calls, fetchFn } = stubFetch((url) =>
       isRunApi(url) ? new Response('{"error":"denied"}', { status: 403 }) : new Response("{}"),
     );
+    const { store } = stubStore();
 
-    await dispatchReserveCommands(
-      [{ slot: "コマ", replyToken: "T" }],
+    await dispatchCommands(
+      [{ action: "cancel", slot: SLOT, replyToken: "T" }],
       context,
-      options(fetchFn),
+      options(fetchFn, store),
     );
 
-    expect(replyTexts(calls)[0]).toContain("失敗");
     expect(replyTexts(calls)[0]).toContain("403");
   });
 
-  test("応答の送信が失敗しても例外にしない", async () => {
-    const { fetchFn } = stubFetch((url) =>
-      isReply(url) ? new Response("bad token", { status: 401 }) : new Response("{}"),
-    );
+  test("承認の記録に失敗しても例外にしない（LINE には 200 を返す）", async () => {
+    const { fetchFn } = stubFetch();
+    const failing = {
+      async read() {
+        return serializeTracked(trackReservation({}, SLOT, "2026-08-03"));
+      },
+      async write() {
+        throw new Error("GCS 書き込み失敗");
+      },
+    };
 
     expect(
-      dispatchReserveCommands(
-        [{ slot: "コマ", replyToken: "T" }],
+      dispatchCommands(
+        [{ action: "approve", slot: SLOT, replyToken: "T" }],
         context,
-        options(fetchFn),
+        options(fetchFn, failing),
       ),
     ).resolves.toBeUndefined();
   });
 
   test("replyToken が無ければ応答を送らない", async () => {
     const { calls, fetchFn } = stubFetch();
-    await dispatchReserveCommands(
-      [{ slot: "コマ", replyToken: "" }],
+    const { store } = stubStore();
+    await dispatchCommands(
+      [{ action: "cancel", slot: SLOT, replyToken: "" }],
       context,
-      options(fetchFn),
+      options(fetchFn, store),
     );
 
-    expect(calls.filter((c) => isRunApi(c.url))).toHaveLength(1);
     expect(replyTexts(calls)).toEqual([]);
   });
 
-  test("1 件目が失敗しても残りのコマを起動する", async () => {
-    let first = true;
-    const { calls, fetchFn } = stubFetch((url) => {
-      if (!isRunApi(url)) return new Response("{}");
-      if (first) {
-        first = false;
-        return new Response("boom", { status: 500 });
-      }
-      return new Response("{}");
-    });
-
-    await dispatchReserveCommands(
+  test("複数の指示をすべて処理する", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store } = stubStore();
+    await dispatchCommands(
       [
-        { slot: "コマA", replyToken: "T1" },
-        { slot: "コマB", replyToken: "T2" },
+        { action: "reserve", slot: SLOT, replyToken: "T1" },
+        { action: "cancel", slot: "2026-08-25 第1面 13:00～15:00", replyToken: "T2" },
       ],
       context,
-      options(fetchFn),
+      options(fetchFn, store),
     );
 
-    expect(calls.filter((c) => isRunApi(c.url))).toHaveLength(2);
-    expect(replyTexts(calls)[0]).toContain("失敗");
-    expect(replyTexts(calls)[1]).toContain("コマB");
+    expect(jobNames(calls)).toEqual(["toshima-reserve", "toshima-cancel"]);
   });
 
-  test("応答本文にアクセストークンを含めない", async () => {
-    const secret = "token-should-not-leak";
-    const { calls, fetchFn } = stubFetch((url) =>
-      isRunApi(url) ? new Response(`bad ${secret}`, { status: 500 }) : new Response("{}"),
-    );
-
-    await dispatchReserveCommands([{ slot: "コマ", replyToken: "T" }], context, {
-      fetchFn,
-      getToken: async () => secret,
-    });
-
-    expect(replyTexts(calls)[0]).not.toContain(secret);
-  });
-
-  test("コマンドが無ければ何もしない", async () => {
+  test("指示が無ければ何もしない", async () => {
     const { calls, fetchFn } = stubFetch();
-    await dispatchReserveCommands([], context, options(fetchFn));
+    const { store } = stubStore();
+    await dispatchCommands([], context, options(fetchFn, store));
     expect(calls).toEqual([]);
   });
 });

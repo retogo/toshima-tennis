@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildReservedMessage,
   pushMessage,
   buildCandidateMessage,
   MAX_BUTTONS,
@@ -122,5 +123,37 @@ describe("pushMessage", () => {
     } catch (e) {
       expect((e as Error).message).not.toContain(secret);
     }
+  });
+});
+
+describe("buildReservedMessage", () => {
+  const SLOT = "2026-08-24 第4面 9:00～11:00";
+
+  test("承認と取消のボタンを付ける", () => {
+    const message = buildReservedMessage("見出し", [SLOT], "2026-08-15");
+    const json = JSON.stringify(message);
+    expect(json).toContain(`approve:${SLOT}`);
+    expect(json).toContain(`cancel:${SLOT}`);
+  });
+
+  test("承認しなかった場合に取消される日を本文に出す", () => {
+    const message = buildReservedMessage("見出し", [SLOT], "2026-08-15");
+    expect(JSON.stringify(message)).toContain("2026-08-15");
+  });
+
+  test("コマ名を本文に出す（postback の label は 20 文字までのため）", () => {
+    const message = buildReservedMessage("見出し", [SLOT], "2026-08-15");
+    expect(JSON.stringify(message)).toContain(SLOT);
+  });
+
+  test("ボタンの label は 20 文字を超えない", () => {
+    const json = JSON.stringify(buildReservedMessage("見出し", [SLOT], "2026-08-15"));
+    for (const m of json.matchAll(/"label":"([^"]*)"/g)) {
+      expect(m[1]!.length).toBeLessThanOrEqual(20);
+    }
+  });
+
+  test("altText に見出しを使う", () => {
+    expect(buildReservedMessage("見出し", [SLOT], "2026-08-15").altText).toBe("見出し");
   });
 });

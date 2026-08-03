@@ -31,3 +31,13 @@ output "state_bucket" {
   description = "前回の空き状況と予約済みコマの置き場"
   value       = google_storage_bucket.state.name
 }
+
+output "cancel_job" {
+  description = "1 件取消の Cloud Run Job 名"
+  value       = google_cloud_run_v2_job.cancel.name
+}
+
+output "cancel_due_job" {
+  description = "未承認予約の自動取消 Job 名"
+  value       = google_cloud_run_v2_job.cancel_due.name
+}

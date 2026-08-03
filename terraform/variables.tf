@@ -27,6 +27,12 @@ variable "poll_schedule" {
   default     = "*/10 0-1,6-23 * * *"
 }
 
+variable "cancel_due_schedule" {
+  description = "未承認予約の自動取消の cron（time_zone は Asia/Tokyo）"
+  type        = string
+  default     = "0 12 * * *"
+}
+
 variable "image" {
   description = <<-EOT
     Cloud Run にデプロイするコンテナイメージ。build.sh が image.auto.tfvars に

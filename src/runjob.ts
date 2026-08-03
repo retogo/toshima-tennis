@@ -35,10 +35,15 @@ async function tokenFromMetadataServer(): Promise<string> {
   return access_token;
 }
 
-/** 予約するコマを環境変数の上書きとして渡し、Job を 1 回実行する。 */
-export async function runReserveJob(
+/**
+ * 環境変数の上書きを渡して Job を 1 回実行する。
+ *
+ * **overrides 付きの起動には `run.jobs.runWithOverrides` が必要。**
+ * `roles/run.invoker` では 403 になる（`terraform/jobs.tf` を参照）。
+ */
+export async function runJob(
   target: JobTarget,
-  slot: string,
+  env: { name: string; value: string }[],
   options: RunOptions = {},
 ): Promise<void> {
   const fetchFn = options.fetchFn ?? fetch;
@@ -52,9 +57,7 @@ export async function runReserveJob(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      overrides: {
-        containerOverrides: [{ env: [{ name: "RESERVE_SLOT", value: slot }] }],
-      },
+      overrides: { containerOverrides: [{ env }] },
     }),
   });
 
@@ -64,4 +67,13 @@ export async function runReserveJob(
   throw new Error(
     `Cloud Run Job の起動に失敗しました（${response.status}）: ${detail}`,
   );
+}
+
+/** 予約するコマを渡して予約 Job を起動する。 */
+export async function runReserveJob(
+  target: JobTarget,
+  slot: string,
+  options: RunOptions = {},
+): Promise<void> {
+  return runJob(target, [{ name: "RESERVE_SLOT", value: slot }], options);
 }

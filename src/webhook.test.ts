@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { sign, verifySignature, extractReserveCommands } from "./webhook";
+import {
+  sign,
+  verifySignature,
+  extractCommands,
+  extractReserveCommands,
+} from "./webhook";
 
 const SECRET = "channel-secret";
 const ME = "Umyself0000000000000000000000000";
@@ -107,5 +112,61 @@ describe("extractReserveCommands", () => {
       ],
     };
     expect(extractReserveCommands(body, ME).map((c) => c.slot)).toEqual(["B"]);
+  });
+});
+
+describe("extractCommands", () => {
+  test("reserve / approve / cancel を種類つきで取り出す", () => {
+    const body = {
+      events: [
+        postbackEvent(ME, "reserve:2026-08-24 第4面 9:00～11:00"),
+        postbackEvent(ME, "approve:2026-08-24 第4面 9:00～11:00"),
+        postbackEvent(ME, "cancel:2026-08-24 第4面 9:00～11:00"),
+      ],
+    };
+    expect(extractCommands(body, ME).map((c) => c.action)).toEqual([
+      "reserve",
+      "approve",
+      "cancel",
+    ]);
+  });
+
+  test("コマ名を取り出す", () => {
+    const body = { events: [postbackEvent(ME, "cancel:2026-08-24 第4面 9:00～11:00")] };
+    expect(extractCommands(body, ME)[0]!.slot).toBe("2026-08-24 第4面 9:00～11:00");
+  });
+
+  test("他人からの取消指示は捨てる（第三者に予約を消させない）", () => {
+    const body = { events: [postbackEvent(STRANGER, "cancel:2026-08-24 第4面 9:00～11:00")] };
+    expect(extractCommands(body, ME)).toEqual([]);
+  });
+
+  test("知らない種類は捨てる", () => {
+    const body = { events: [postbackEvent(ME, "delete:2026-08-24 第4面 9:00～11:00")] };
+    expect(extractCommands(body, ME)).toEqual([]);
+  });
+
+  test("コマが空なら捨てる", () => {
+    const body = { events: [postbackEvent(ME, "cancel:")] };
+    expect(extractCommands(body, ME)).toEqual([]);
+  });
+
+  test("postback 以外は捨てる", () => {
+    const body = {
+      events: [
+        { type: "message", source: { userId: ME }, message: { type: "text", text: "cancel:x" } },
+      ],
+    };
+    expect(extractCommands(body, ME)).toEqual([]);
+  });
+
+  test("events が壊れていても例外にしない", () => {
+    expect(extractCommands(null, ME)).toEqual([]);
+    expect(extractCommands({ events: "x" }, ME)).toEqual([]);
+  });
+
+  test("replyToken を持ち回る", () => {
+    const body = { events: [postbackEvent(ME, "approve:2026-08-24 第4面 9:00～11:00")] };
+    expect(extractCommands(body, ME)[0]!.replyToken).toBe("rt-1");
   });
 });

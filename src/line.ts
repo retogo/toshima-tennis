@@ -89,6 +89,68 @@ export function buildCandidateMessage(
   };
 }
 
+/**
+ * 自動予約したコマに「承認」「取消」ボタンを付けた Flex メッセージを作る。
+ *
+ * 承認しないまま `cancelOn` を迎えると自動で取り消されるため、その日付を本文に
+ * 必ず出す。押さないと消える、という前提が伝わらないと事故になる。
+ *
+ * postback の label は 20 文字までなので、コマ名は本文テキストに出す。
+ */
+export function buildReservedMessage(
+  heading: string,
+  slots: string[],
+  cancelOn: string,
+): FlexMessage {
+  const shown = slots.slice(0, MAX_BUTTONS);
+  const rows = shown.flatMap((slot) => [
+    { type: "text", text: slot, size: "sm", wrap: true },
+    {
+      type: "box",
+      layout: "horizontal",
+      spacing: "sm",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          height: "sm",
+          action: { type: "postback", label: "承認", data: `approve:${slot}` },
+        },
+        {
+          type: "button",
+          style: "secondary",
+          height: "sm",
+          action: { type: "postback", label: "取消", data: `cancel:${slot}` },
+        },
+      ],
+    },
+  ]);
+
+  return {
+    type: "flex",
+    altText: heading,
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: heading, weight: "bold", wrap: true },
+          { type: "box", layout: "vertical", spacing: "md", contents: rows },
+          {
+            type: "text",
+            text: `${cancelOn} までに承認しないと自動で取り消します。`,
+            size: "xs",
+            color: "#888888",
+            wrap: true,
+          },
+        ],
+      },
+    },
+  };
+}
+
 export async function pushMessage(
   channelAccessToken: string,
   to: string,

@@ -130,6 +130,18 @@ resource "google_cloud_run_v2_service" "webhook" {
         value = google_cloud_run_v2_job.reserve.name
       }
 
+      env {
+        name  = "CANCEL_JOB"
+        value = google_cloud_run_v2_job.cancel.name
+      }
+
+      # 承認（自動取消の対象から外す）を記録するため。予約システムの
+      # 認証情報は依然として持たない。
+      env {
+        name  = "STATE_BUCKET"
+        value = google_storage_bucket.state.name
+      }
+
       dynamic "env" {
         for_each = toset(local.webhook_secrets)
 

@@ -94,3 +94,35 @@ describe("parseConfig", () => {
     expect(() => parseConfig("{ちがう")).toThrow(/JSON/);
   });
 });
+
+describe("cancelBufferDays", () => {
+  const base = {
+    wishes: [{ daysOfWeek: [0, 6] }],
+    maxPerMonth: 2,
+    maxPerRun: 1,
+    ninzu: 2,
+  };
+
+  test("省略時は 2 日前（ジョブ失敗時に翌日再試行できる）", () => {
+    expect(parseConfig(JSON.stringify(base)).cancelBufferDays).toBe(2);
+  });
+
+  test("指定した日数を使う", () => {
+    expect(
+      parseConfig(JSON.stringify({ ...base, cancelBufferDays: 3 }))
+        .cancelBufferDays,
+    ).toBe(3);
+  });
+
+  test("0 以下は受け付けない（期限当日の取消は失敗すると取り返せない）", () => {
+    expect(() =>
+      parseConfig(JSON.stringify({ ...base, cancelBufferDays: 0 })),
+    ).toThrow(/cancelBufferDays/);
+  });
+
+  test("取消期限（7 日）以上は受け付けない（予約直後に取消してしまう）", () => {
+    expect(() =>
+      parseConfig(JSON.stringify({ ...base, cancelBufferDays: 7 })),
+    ).toThrow(/cancelBufferDays/);
+  });
+});

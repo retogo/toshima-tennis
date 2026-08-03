@@ -24,6 +24,7 @@
     "apply": "terraform -chdir=terraform apply",
     "deploy": "terraform/build.sh && terraform -chdir=terraform apply",
     "probe:cancel": "bun run scripts/probe-cancel.ts",
-    "cancel": "bun run scripts/cancel-one.ts"
+    "cancel": "bun run scripts/cancel-one.ts",
+    "cancel:due": "bun run scripts/cancel-due.ts"
   }
 }

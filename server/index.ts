@@ -13,8 +13,9 @@
  * webhook 側に置かずに済ませるための分担。webhook は Job を起動するだけで、
  * 利用者番号もパスワードも知らない。
  */
-import { dispatchReserveCommands } from "../src/dispatch";
-import { extractReserveCommands, verifySignature } from "../src/webhook";
+import { dispatchCommands } from "../src/dispatch";
+import { stateStoreFromEnv } from "../src/state";
+import { extractCommands, verifySignature } from "../src/webhook";
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -30,6 +31,9 @@ const jobTarget = {
   region: required("GCP_REGION"),
   job: required("RESERVE_JOB"),
 };
+const cancelJob = required("CANCEL_JOB");
+/** 承認の記録先。予約システムの認証情報とは別で、webhook でも書き換える。 */
+const state = stateStoreFromEnv();
 const port = Number(process.env.PORT ?? 8080);
 
 Bun.serve({
@@ -56,12 +60,16 @@ Bun.serve({
           return new Response("invalid json", { status: 400 });
         }
 
-        const commands = extractReserveCommands(body, allowedUserId);
+        const commands = extractCommands(body, allowedUserId);
 
         // 200 を返す前に処理し切る。cpu_idle = true のため、レスポンス後に
         // 投げっぱなしにした処理には CPU が割り当てられず走らない。
         // Job 起動は HTTP 1 回なので待っても応答は遅くならない。
-        await dispatchReserveCommands(commands, { jobTarget, channelAccessToken });
+        await dispatchCommands(
+          commands,
+          { jobTarget, cancelJob, channelAccessToken },
+          { state },
+        );
 
         return new Response("ok");
       },

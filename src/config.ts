@@ -22,6 +22,29 @@ export interface ReserveConfig {
   mode: ReserveMode;
   wishlist: Wishlist;
   application: ApplicationDetails;
+  /**
+   * 承認されない予約を、取消期限の何日前に自動取消するか。
+   * 期限当日だとジョブが失敗したときに取り返せないため 1 以上にする。
+   */
+  cancelBufferDays: number;
+}
+
+/** 取消期限は使用日の 1 週間前。バッファはこれ未満でなければ意味がない。 */
+const CANCELLATION_WINDOW_DAYS = 7;
+
+function parseCancelBufferDays(value: unknown): number {
+  if (value === undefined) return 2;
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 1 ||
+    value >= CANCELLATION_WINDOW_DAYS
+  ) {
+    throw new Error(
+      `cancelBufferDays には 1 以上 ${CANCELLATION_WINDOW_DAYS} 未満の整数を指定してください`,
+    );
+  }
+  return value;
 }
 
 function parseMode(value: unknown): ReserveMode {
@@ -122,5 +145,6 @@ export function parseConfig(json: string): ReserveConfig {
       gyoujiMeishou:
         raw.gyoujiMeishou === undefined ? "テニス" : String(raw.gyoujiMeishou),
     },
+    cancelBufferDays: parseCancelBufferDays(raw.cancelBufferDays),
   };
 }

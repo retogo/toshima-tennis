@@ -1,18 +1,18 @@
 {
-  "_comment": "自動予約の設定。mode=approve は条件一致を承認待ちにし、GitHub で Approve して初めて予約が確定する。取消は使用日の1週間前までに自分で行う必要がある。timeRanges を省略すると全時間帯が対象になる。",
-
+  "_comment": "自動予約の設定。mode=auto は条件一致でその場で予約し、承認しないまま取消期限の cancelBufferDays 日前になると自動で取り消す。approve は候補をボタンで通知し押されて初めて予約する。timeRanges を省略すると全時間帯が対象。",
   "mode": "approve",
-
   "wishes": [
     {
-      "daysOfWeek": [0, 6]
+      "daysOfWeek": [
+        0,
+        6
+      ]
     }
   ],
-
   "maxPerRun": 1,
   "maxPerMonth": 2,
-
   "ninzu": 2,
   "gyoujiMeishou": "テニス",
-  "mokuteki": "tennis"
+  "mokuteki": "tennis",
+  "cancelBufferDays": 2
 }

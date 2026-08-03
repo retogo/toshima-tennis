@@ -175,3 +175,36 @@ describe("selectSlotsToReserve", () => {
     expect(selectSlotsToReserve([SAT_9], empty, [])).toEqual([]);
   });
 });
+
+describe("サイトの予約一覧を根拠にする", () => {
+  const wishlist: Wishlist = { wishes: [{}], maxPerMonth: 2, maxPerRun: 5 };
+
+  test("同じ利用日・時間帯の予約があるコマは選ばない（面が違っても）", () => {
+    // サイトは面を区別しないため、面違いの二重予約を防げるのはこの比較だけ
+    const slots = [
+      slot("2026-08-24", "02", "9:00～11:00"),
+      slot("2026-08-25", "01", "9:00～11:00"),
+    ];
+    const selected = selectSlotsToReserve(slots, wishlist, [
+      "2026-08-24 9:00～11:00",
+    ]);
+    expect(selected.map((s) => s.date)).toEqual(["2026-08-25"]);
+  });
+
+  test("面を含む従来の記録でも同じ日時として扱える", () => {
+    const slots = [slot("2026-08-24", "02", "9:00～11:00")];
+    expect(
+      selectSlotsToReserve(slots, wishlist, ["2026-08-24 第4面 9:00～11:00"]),
+    ).toEqual([]);
+  });
+
+  test("月上限は予約一覧の件数で判定する", () => {
+    const slots = [slot("2026-08-30", "01", "9:00～11:00")];
+    expect(
+      selectSlotsToReserve(slots, wishlist, [
+        "2026-08-09 15:00～17:00",
+        "2026-08-24 9:00～11:00",
+      ]),
+    ).toEqual([]);
+  });
+});

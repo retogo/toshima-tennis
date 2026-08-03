@@ -21,6 +21,9 @@ bun install
 ```bash
 bun run poll          # 空き状況を確認して通知（ローカル実行）
 bun run reserve       # 1 コマを予約（RESERVE_SLOT で指定）
+bun run cancel        # 1 コマを取消（CANCEL_SLOT で指定）
+bun run cancel:due    # 未承認のまま期限が近い予約を取消
+bun run probe:cancel  # 予約確認・取消フローの画面構造を調査
 bun run probe         # 予約フローの画面構造を調査
 bun run notify:test   # LINE への疎通確認
 
@@ -49,16 +52,23 @@ Cloud Scheduler (JST 06:00-02:00 / 10分間隔)
 LINE のボタンをタップ
   → Cloud Run Service: webhook
        X-Line-Signature を検証 / 送信者 userId を照合
-  → Cloud Run Job: reserve
-       空き状況を取り直し → 確定前照合 → 予約 → LINE に結果を通知
+  → 予約: Cloud Run Job reserve  空き状況を取り直し → 確定前照合 → 予約
+     取消: Cloud Run Job cancel  予約一覧を取り直し → 確定前照合 → 取消
+     承認: 記録を承認済みにするだけ（予約システムに触らない）
+
+Cloud Scheduler (JST 12:00 / 日次)
+  → Cloud Run Job: cancel-due
+       承認されないまま取消期限が近い予約を取り消す
 ```
 
 | 要素 | 役割 |
 | --- | --- |
 | `scripts/poll.ts` | ポーリングと通知（Job） |
 | `scripts/reserve-one.ts` | 1 コマの予約（Job） |
+| `scripts/cancel-one.ts` | 1 コマの取消（Job） |
+| `scripts/cancel-due.ts` | 未承認予約の自動取消（Job・日次） |
 | `server/index.ts` | LINE webhook（Service） |
-| GCS `<project>-state` | 前回の空き状況・予約済みコマ |
+| GCS `<project>-state` | 前回の空き状況・自動予約の承認状態 |
 | Secret Manager | LINE と予約システムの認証情報 |
 
 ### 通知の絞り込み
@@ -97,13 +107,35 @@ Job を起動するだけで、利用者番号もパスワードも知らない�
 | `approve` | 候補をボタン付きで通知し、押されたら予約 |
 | `auto` | 条件に一致したらその場で予約確定 |
 
+### 承認しないと取り消される（auto モード）
+
+`auto` は予約したあと「承認 / 取消」ボタン付きで通知する。**承認しないまま
+取消期限（使用日の 1 週間前・同一曜日）の `cancelBufferDays` 日前になると
+自動で取り消す。** 承認すれば以後その予約は自動取消の対象から外れる。
+
+| 操作 | 起きること |
+| --- | --- |
+| 承認を押す | 記録が承認済みになる。予約はそのまま残る |
+| 取消を押す | その場で取消 Job が動く |
+| 何もしない | 期限の `cancelBufferDays` 日前に自動で取り消される |
+
+**期限当日には取り消さない。** ジョブが失敗したときに期限を超過すると、窓口・
+電話でのキャンセル料が発生する。既定の 2 日前なら 1 日空振りしても翌日やり直せる。
+
+**記録に無い予約は絶対に取り消さない**（`src/tracked.ts`）。自分で予約システムから
+取った予約をツールが勝手に消してしまう事故を防ぐため。承認の対象にもならない。
+
+**取消可否はサイトに聞く。** 取消期限を過ぎた予約にはサイトが取消のチェック
+ボックスを出さないので、期限を自前で計算して判断しない。
+
 | 項目 | 内容 |
 | --- | --- |
 | `wishes[].daysOfWeek` | 0（日）〜6（土）。省略時は曜日を問わない |
 | `wishes[].timeRanges` | `"9:00～11:00"` 形式。省略時は時間帯を問わない |
 | `wishes[].courts` | 面番号。省略時は面を問わない |
 | `maxPerRun` | 1 回の実行で予約する件数の上限 |
-| `maxPerMonth` | 暦月あたりの予約件数の上限（予約済み分も数える） |
+| `maxPerMonth` | 暦月あたりの予約件数の上限（サイトの予約一覧から数える） |
+| `cancelBufferDays` | 承認されない予約を取消期限の何日前に取り消すか（既定 2） |
 | `ninzu` | 利用人数 |
 | `gyoujiMeishou` | 行事名称。既定値 `テニス` |
 | `mokuteki` | `tennis` / `softTennis`。既定値 `tennis` |

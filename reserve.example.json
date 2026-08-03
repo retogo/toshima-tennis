@@ -1,19 +1,22 @@
 {
   "_comment": "自動予約の設定。reserve.json にコピーして使う。空きが希望条件に一致すると自動で予約が確定し、取消は使用日の1週間前までに自分で行う必要がある。",
-
   "mode": "notify",
-
   "wishes": [
     {
-      "daysOfWeek": [0, 6],
-      "timeRanges": ["9:00～11:00", "11:00～13:00"]
+      "daysOfWeek": [
+        0,
+        6
+      ],
+      "timeRanges": [
+        "9:00～11:00",
+        "11:00～13:00"
+      ]
     }
   ],
-
   "maxPerRun": 1,
   "maxPerMonth": 2,
-
   "ninzu": 4,
   "gyoujiMeishou": "テニス",
-  "mokuteki": "tennis"
+  "mokuteki": "tennis",
+  "cancelBufferDays": 2
 }
