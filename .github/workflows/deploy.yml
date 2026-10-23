@@ -1,0 +1,97 @@
+name: Deploy
+
+# main のイメージに関わる変更を webhook サービスと 4 つの Job に出す。
+# GCP 側の器（サービス・Job・権限）は retogo/infra の apps/toshima-tennis が管理し、
+# ここではイメージの差し替えだけを行う。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "server/**"
+      - "scripts/**"
+      - "reserve.json"
+      - "package.json"
+      - "bun.lock"
+      - "Dockerfile"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+# 同時にデプロイすると webhook と Job のイメージが食い違いうるので直列にする。
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_ID: retogo-prod
+  REGION: asia-northeast1
+  REPOSITORY: toshima-tennis
+  SERVICE: toshima-tennis-webhook
+  JOBS: toshima-poll toshima-reserve toshima-cancel toshima-cancel-due
+  BUN_VERSION: "1.4.2"
+
+jobs:
+  test:
+    name: test / typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - run: bun install --frozen-lockfile
+      - run: bun test
+      - run: bun run typecheck
+
+  deploy:
+    name: deploy (cloud run)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      id-token: write # WIF の OIDC トークン発行に必須
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      # webhook と Job は同じイメージで、起動するスクリプトは Job 側の command で切り替える。
+      # タグはコミットハッシュ（:latest だと差し替えたことが追えない）。
+      - name: Build image, push, and deploy
+        run: |
+          set -euo pipefail
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/webhook:${GITHUB_SHA::7}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          gcloud run deploy "${SERVICE}" \
+            --image="$IMAGE" \
+            --region="${REGION}" \
+            --project="${PROJECT_ID}" \
+            --quiet
+          for job in ${JOBS}; do
+            gcloud run jobs update "$job" \
+              --image="$IMAGE" \
+              --region="${REGION}" \
+              --project="${PROJECT_ID}" \
+              --quiet
+          done
