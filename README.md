@@ -29,15 +29,9 @@ bun run notify:test   # LINE への疎通確認
 
 bun test              # テスト
 bun run typecheck     # 型検査
-
-bun run bootstrap     # 初回のみ: state バケットと Artifact Registry
-bun run image         # コンテナをビルドして push
-bun run plan          # terraform plan
-bun run apply         # terraform apply
-bun run deploy        # image + apply
 ```
 
-`plan` / `apply` には引数をそのまま渡せる（例: `bun run apply -auto-approve`）。
+デプロイは GitHub Actions が行う（「デプロイ」参照）。
 
 ## 構成
 
@@ -308,123 +302,57 @@ curl -X DELETE https://api.line.me/v2/bot/user/all/richmenu \
 
 ## デプロイ
 
-### 1. gcloud を分離する
+GCP 側の構成（Cloud Run サービス・Job・Scheduler・Secret の入れ物・権限）は
+retogo/infra の `apps/toshima-tennis`（GCP プロジェクト `retogo-prod`）で管理している。
+このリポジトリが受け持つのはコンテナイメージの更新だけ。
 
-`CLOUDSDK_CONFIG` で gcloud の状態一式（アカウント・設定・ADC）を
-別ディレクトリに切り出す。既定の `~/.config/gcloud` には触れない。
-
-```bash
-export CLOUDSDK_CONFIG=~/.config/gcloud-toshima
-
-gcloud auth login
-gcloud auth application-default login
-gcloud config set project toshima-tennis
-gcloud config set compute/region asia-northeast1
-
-# Terraform は CLOUDSDK_CONFIG を見ないので ADC を明示する
-export GOOGLE_APPLICATION_CREDENTIALS="$CLOUDSDK_CONFIG/application_default_credentials.json"
-```
-
-**`CLOUDSDK_CONFIG` だけでは Terraform に効かない。** gcloud 自身はこの変数で
-設定ディレクトリを切り替えるが、Terraform（Go の認証ライブラリ）はこれを見ず
-`~/.config/gcloud/application_default_credentials.json` を直接読みにいく。
-名前付き設定（`gcloud config configurations`）でも同じ理由で不十分。
-
-`terraform/.envrc.example` を direnv で使えば毎回打たずに済む。
-
-### 2. 先に用意するものを作る
-
-初回のみ。**Terraform が構成を記述する前に存在していないと困るもの**だけを作る。
-state バケット（Terraform 管理下に置くと `destroy` で state ごと消える）と
-Artifact Registry（Cloud Run はイメージが無いと作成に失敗するため、apply より
-前に build できる必要がある）。
+main にイメージに関わる変更（`src/` `server/` `scripts/` `reserve.json` など）が入ると、
+`.github/workflows/deploy.yml` がテスト・型検査の後にイメージをビルドして push し、
+webhook を `gcloud run deploy`、4 つの Job を `gcloud run jobs update` で差し替える。
+タグはコミットハッシュ。手動で出し直すときは:
 
 ```bash
-bun run bootstrap
+gh workflow run deploy.yml
 ```
 
-### 3. シークレットの入れ物を作って値を入れる
+認証は Workload Identity Federation。リポジトリ変数 `WIF_PROVIDER` /
+`DEPLOY_SERVICE_ACCOUNT` を使う（値は retogo/infra の output）。
 
-シークレットは Terraform で入れ物だけ作るが、Cloud Run より先に値が要る。
-先に入れ物だけ作ってしまう。
+### シークレットの値を入れる
+
+**値は Terraform で管理しない**（state に平文が残るため）。入れ物は retogo/infra が作る。
 
 ```bash
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-terraform -chdir=terraform init
-bun run apply -target=google_secret_manager_secret.this
+printf '%s' '<チャネルアクセストークン>' | gcloud secrets versions add toshima-tennis-line-channel-access-token --data-file=- --project=retogo-prod
+printf '%s' '<チャネルシークレット>'     | gcloud secrets versions add toshima-tennis-line-channel-secret --data-file=- --project=retogo-prod
+printf '%s' '<ユーザーID>'               | gcloud secrets versions add toshima-tennis-line-to --data-file=- --project=retogo-prod
+printf '%s' '<利用者番号>'               | gcloud secrets versions add toshima-tennis-user-id --data-file=- --project=retogo-prod
+printf '%s' '<パスワード>'               | gcloud secrets versions add toshima-tennis-password --data-file=- --project=retogo-prod
 ```
 
-**値は Terraform で管理しない**（state に平文が残るため）。
+### Webhook URL を登録する
 
-```bash
-printf '%s' '<チャネルアクセストークン>' | gcloud secrets versions add line-channel-access-token --data-file=-
-printf '%s' '<チャネルシークレット>'     | gcloud secrets versions add line-channel-secret --data-file=-
-printf '%s' '<ユーザーID>'               | gcloud secrets versions add line-to --data-file=-
-printf '%s' '<利用者番号>'               | gcloud secrets versions add toshima-user-id --data-file=-
-printf '%s' '<パスワード>'               | gcloud secrets versions add toshima-password --data-file=-
-```
-
-### 4. コンテナをビルドする
-
-```bash
-bun run image
-```
-
-git のコミットハッシュでタグを打ち、`terraform/image.auto.tfvars` に書き出す。
-
-### 5. 残りをまとめて作る
-
-```bash
-bun run apply
-```
-
-### 6. Webhook URL を登録する
-
-```bash
-terraform output webhook_url
-```
-
-Developers コンソールの「Messaging API設定 → Webhook URL」に設定し、
-「Webhookの利用」をオンにする。「検証」ボタンで疎通を確認できる。
-
-### Terraform 管理外のもの
-
-インフラは `terraform/` に寄せてあるが、以下は意図的に管理外にしている。
-
-| 対象 | 作り方 | 管理外にする理由 |
-| --- | --- | --- |
-| tfstate バケット | `bootstrap.sh` | Terraform 管理下に置くと `destroy` で state の置き場ごと消える |
-| Artifact Registry | `bootstrap.sh` | Cloud Run はイメージが無いと作成に失敗する。apply より前に build できる必要がある（`data` で参照） |
-| Secret の値（version） | `gcloud secrets versions add` | `google_secret_manager_secret_version` を使うと**平文が state に残る**。入れ物だけ管理する |
-| GCP プロジェクト・課金の紐付け | コンソール | プロジェクトが無いと provider が動かない |
-| コンテナイメージ | `build.sh` | ビルドは Cloud Build。Terraform はタグを受け取るだけ |
-| LINE の設定 | 手作業 | provider が存在せず、チャネル作成の公開 API も無い |
-
-**イメージのタグは固定値にしない。** `:latest` のままだとタグ文字列が変わらず、
-`terraform apply` が「変更なし」と判断して新しいイメージが反映されない。
-`build.sh` が git のコミットハッシュでタグを打ち、`image.auto.tfvars` に
-書き出す（`*.auto.tfvars` は Terraform が自動で読む）。
+retogo/infra の `terraform output webhook_url` を Developers コンソールの
+「Messaging API設定 → Webhook URL」に設定し、「Webhookの利用」をオンにする。
+「検証」ボタンで疎通を確認できる。LINE の設定は provider が存在せず、チャネル作成の
+公開 API も無いため手作業になる。
 
 ## 運用
 
 ### コードを変えて反映する
 
-```bash
-bun run deploy
-```
-
-イメージのタグが更新されるので、apply は 1 回で反映される。
+main に入れると deploy.yml が反映する。
 
 ### 手動でポーリングする
 
 ```bash
-gcloud run jobs execute "$(terraform -chdir=terraform output -raw poll_job)" --region asia-northeast1
+gcloud run jobs execute toshima-poll --region asia-northeast1 --project retogo-prod
 ```
 
 ### ログを見る
 
 ```bash
-gcloud run jobs executions list --job "$(terraform -chdir=terraform output -raw poll_job)" --region asia-northeast1
+gcloud run jobs executions list --job toshima-poll --region asia-northeast1 --project retogo-prod
 ```
 
 ### ローカルで動かす

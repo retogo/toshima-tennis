@@ -39,7 +39,7 @@ async function tokenFromMetadataServer(): Promise<string> {
  * 環境変数の上書きを渡して Job を 1 回実行する。
  *
  * **overrides 付きの起動には `run.jobs.runWithOverrides` が必要。**
- * `roles/run.invoker` では 403 になる（`terraform/jobs.tf` を参照）。
+ * `roles/run.invoker` では 403 になる（retogo/infra の `apps/toshima-tennis/jobs.tf` を参照）。
  */
 export async function runJob(
   target: JobTarget,

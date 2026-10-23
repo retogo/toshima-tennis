@@ -89,15 +89,13 @@
 - ユーザー ID は `U` で始まる 33 文字。普段の LINE ID とは別物
 - Terraform provider は公式・コミュニティとも存在しない
 
-## GCP / Terraform の癖
+## GCP の癖
 
-**Terraform は `CLOUDSDK_CONFIG` を見ない。** gcloud 自身は切り替わるが、
-Terraform（Go の認証ライブラリ）は `~/.config/gcloud` の ADC を直接読む。
-別アカウントで動いて権限エラーになる。`GOOGLE_APPLICATION_CREDENTIALS` を
-明示すること（`terraform/.envrc.example`）。
+GCP 側の構成は retogo/infra の `apps/toshima-tennis` にある。ここに書くのは、
+その構成とこのリポジトリのコードの両方に関わる前提。
 
 **サービスアカウントの `account_id` は 30 文字まで。** リソース名を連結すると
-すぐ超える。`var.name_prefix`（既定 `toshima`）を使う。
+すぐ超える。retogo/infra の `var.name_prefix`（既定 `toshima`）を使う。
 
 **Cloud Scheduler は `time_zone` を指定できる。** cron を UTC に換算しない。
 
@@ -179,7 +177,7 @@ poll は `reserve.json` の値で動いているのにメニューは別のモ�
 予約も通知も静かに止まる状態が起きた。
 
 **poll も予約システムにログインする。** 月上限の判定と、LINE の状況表示用の
-予約一覧キャッシュのため。terraform の `poll_secrets` に `TOSHIMA_*` が無いと
+予約一覧キャッシュのため。retogo/infra の `poll_secrets` に `TOSHIMA_*` が無いと
 auto に切り替えた瞬間に落ちる。
 
 **webhook は予約一覧を取りに行かない。** 認証情報を持たない設計なので、poll が
@@ -201,8 +199,7 @@ LINE のボタン経由は選択ロジックを通らないため、`scripts/res
 Bun を使う。`node` / `npm` / `npx` / `jest` は使わない。
 
 **操作は `package.json` の script に寄せてある。** ファイルパスを直接叩かず
-`bun run poll` のように呼ぶ。Terraform も `bun run plan` / `bun run apply` で
-統一しており、引数はそのまま渡る。一覧は README を参照。
+`bun run poll` のように呼ぶ。一覧は README を参照。
 
 - テスト `bun test` / 型検査 `bun run typecheck` / 依存 `bun install`
 - `.env` は Bun が自動で読む。`dotenv` を入れない
