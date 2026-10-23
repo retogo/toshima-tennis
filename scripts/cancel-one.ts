@@ -2,7 +2,8 @@
  * 1 件だけ予約を取り消す（Cloud Run Job）。
  *
  * LINE の「取消」ボタン、または期限が近づいた未承認予約の自動取消から起動される。
- * 取り消すコマは CANCEL_SLOT で渡す。
+ * 取り消すコマは webhook がこの Execution への依頼として state に置く（`src/jobrequest.ts`）。
+ * ローカル実行では CANCEL_SLOT で渡す。
  *
  * **取消も不可逆。** 取り消したコマはすぐ他の人に取られるうえ、取消期限
  * （使用日の 1 週間前・同一曜日）を過ぎると取り直せない。取消確認画面の照合を
@@ -15,7 +16,9 @@ import { cancelReservation } from "../src/cancel";
 import { ToshimaClient } from "../src/client";
 import { loadCredentials } from "../src/credentials";
 import { pushMessage } from "../src/line";
+import { slotForJob } from "../src/jobrequest";
 import { CANCELLED_SUBJECT, formatCancellationBody } from "../src/notify";
+import { stateStoreFromEnv } from "../src/state";
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -23,7 +26,7 @@ function required(name: string): string {
   return value;
 }
 
-const wanted = required("CANCEL_SLOT");
+const wanted = await slotForJob(process.env, stateStoreFromEnv(), "CANCEL_SLOT");
 const lineToken = required("LINE_CHANNEL_ACCESS_TOKEN");
 const lineTo = required("LINE_TO");
 /** 通知本文に出す取消理由。自動取消と手動取消を区別する。 */

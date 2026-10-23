@@ -99,12 +99,13 @@ GCP 側の構成は retogo/infra の `apps/toshima-tennis` にある。ここに
 
 **Cloud Scheduler は `time_zone` を指定できる。** cron を UTC に換算しない。
 
-**環境変数を上書きして Job を起動するには `roles/run.invoker` では足りない。**
-`run.invoker` が持つのは `run.jobs.run` まで。overrides 付きの起動には
-`run.jobs.runWithOverrides` が要り、無いと 403 PERMISSION_DENIED になる。
-webhook は `RESERVE_SLOT` を overrides で渡すのでこれに該当する。
-`roles/run.jobsExecutorWithOverrides` を使う（`run.developer` は広すぎる）。
-一方 Cloud Scheduler → poll は overrides を使わないので `run.invoker` のままでよい。
+**webhook は Job を環境変数の上書き（overrides）で起動しない。** overrides を許す
+`run.jobs.runWithOverrides`（`roles/run.jobsExecutorWithOverrides`）を webhook に持たせると、
+webhook が破られたとき `HTTPS_PROXY` などを付けて予約システムの認証情報を持つ Job を
+動かせてしまう。webhook は `run.invoker`（`run.jobs.run`）で起動し、返ってきた
+Execution 名をキーに対象のコマを `requests/<Execution 名>.json` に書く。Job は
+`CLOUD_RUN_EXECUTION` で自分の依頼を読む（`src/jobrequest.ts`）。依頼は webhook が
+書けるので外部入力として検証する。
 
 **`cpu_idle = true` の Cloud Run はレスポンス後の処理を走らせない。** webhook は
 これで動かしているため、200 を返してから投げっぱなしにした非同期処理には CPU が

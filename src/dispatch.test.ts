@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { dispatchCommands } from "./dispatch";
+import { jobRequestKey } from "./jobrequest";
 import { REPLY_ENDPOINT } from "./line";
 import { serializeTracked, trackReservation } from "./tracked";
 
@@ -22,8 +23,17 @@ interface Call {
   body: unknown;
 }
 
+/** jobs.run が返す Operation。Execution 名は Job 名から決め打ちにする。 */
+function runResponse(url: string): Response {
+  const job = url.match(/jobs\/([^:]+):run/)![1];
+  return new Response(
+    JSON.stringify({ metadata: { name: `projects/p/locations/l/jobs/${job}/executions/${job}-exec1` } }),
+  );
+}
+
 function stubFetch(
-  responder: (url: string) => Response = () => new Response("{}"),
+  responder: (url: string) => Response = (url) =>
+    url.includes("run.googleapis.com") ? runResponse(url) : new Response("{}"),
 ) {
   const calls: Call[] = [];
   const fetchFn = (async (url: unknown, init?: RequestInit) => {
@@ -84,6 +94,20 @@ describe("dispatchCommands: 予約", () => {
     expect(jobNames(calls)).toEqual(["toshima-reserve"]);
     expect(replyTexts(calls)[0]).toContain(SLOT);
   });
+
+  test("予約するコマは起動した Execution の依頼として書き、上書きは渡さない", async () => {
+    const { calls, fetchFn } = stubFetch();
+    const { store, current } = stubStore();
+    await dispatchCommands(
+      [{ action: "reserve", slot: SLOT, replyToken: "T" }],
+      context,
+      options(fetchFn, store),
+    );
+
+    const run = calls.find((c) => isRunApi(c.url))!;
+    expect(run.body).toBeUndefined();
+    expect(JSON.parse(current(jobRequestKey("toshima-reserve-exec1")))).toEqual({ slot: SLOT });
+  });
 });
 
 describe("dispatchCommands: 取消", () => {
@@ -99,9 +123,9 @@ describe("dispatchCommands: 取消", () => {
     expect(jobNames(calls)).toEqual(["toshima-cancel"]);
   });
 
-  test("取消 Job には CANCEL_SLOT を渡す", async () => {
+  test("取り消すコマは起動した Execution の依頼として書き、上書きは渡さない", async () => {
     const { calls, fetchFn } = stubFetch();
-    const { store } = stubStore();
+    const { store, current } = stubStore();
     await dispatchCommands(
       [{ action: "cancel", slot: SLOT, replyToken: "T" }],
       context,
@@ -109,9 +133,8 @@ describe("dispatchCommands: 取消", () => {
     );
 
     const run = calls.find((c) => isRunApi(c.url))!;
-    const env = (run.body as { overrides: { containerOverrides: { env: unknown[] }[] } })
-      .overrides.containerOverrides[0]!.env;
-    expect(env).toContainEqual({ name: "CANCEL_SLOT", value: SLOT });
+    expect(run.body).toBeUndefined();
+    expect(JSON.parse(current(jobRequestKey("toshima-cancel-exec1")))).toEqual({ slot: SLOT });
   });
 });
 

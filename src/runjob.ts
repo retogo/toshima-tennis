@@ -36,44 +36,40 @@ async function tokenFromMetadataServer(): Promise<string> {
 }
 
 /**
- * 環境変数の上書きを渡して Job を 1 回実行する。
+ * Job を 1 回実行し、起動した Execution の名前を返す。
  *
- * **overrides 付きの起動には `run.jobs.runWithOverrides` が必要。**
- * `roles/run.invoker` では 403 になる（retogo/infra の `apps/toshima-tennis/jobs.tf` を参照）。
+ * **環境変数の上書き（overrides）は渡さない。** overrides を許す
+ * `run.jobs.runWithOverrides` を webhook に持たせると、webhook が破られたとき
+ * 任意の環境変数（`HTTPS_PROXY` など）を付けて予約システムの認証情報を持つ Job を
+ * 動かせてしまう。対象のコマは Execution 名をキーにした依頼として state に置き
+ * （`src/jobrequest.ts`）、起動は `roles/run.invoker` の `run.jobs.run` で足りるようにする。
  */
 export async function runJob(
   target: JobTarget,
-  env: { name: string; value: string }[],
   options: RunOptions = {},
-): Promise<void> {
+): Promise<string> {
   const fetchFn = options.fetchFn ?? fetch;
   const token = await (options.getToken ?? tokenFromMetadataServer)();
 
   const url = `${RUN_API}/projects/${target.project}/locations/${target.region}/jobs/${target.job}:run`;
   const response = await fetchFn(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      overrides: { containerOverrides: [{ env }] },
-    }),
+    headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (response.ok) return;
+  if (!response.ok) {
+    const detail = (await response.text()).replaceAll(token, "<token>");
+    throw new Error(
+      `Cloud Run Job の起動に失敗しました（${response.status}）: ${detail}`,
+    );
+  }
 
-  const detail = (await response.text()).replaceAll(token, "<token>");
-  throw new Error(
-    `Cloud Run Job の起動に失敗しました（${response.status}）: ${detail}`,
-  );
-}
-
-/** 予約するコマを渡して予約 Job を起動する。 */
-export async function runReserveJob(
-  target: JobTarget,
-  slot: string,
-  options: RunOptions = {},
-): Promise<void> {
-  return runJob(target, [{ name: "RESERVE_SLOT", value: slot }], options);
+  // 応答は Operation。metadata が起動した Execution で、name の末尾が Execution 名
+  // （Job のコンテナには CLOUD_RUN_EXECUTION として渡る）。
+  const operation = (await response.json()) as { metadata?: { name?: string } };
+  const execution = operation.metadata?.name?.split("/").pop();
+  if (!execution) {
+    throw new Error("Cloud Run Job の起動結果に Execution の名前がありません");
+  }
+  return execution;
 }

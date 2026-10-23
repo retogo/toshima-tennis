@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { runReserveJob } from "./runjob";
+import { runJob } from "./runjob";
 
 function stubFetch(response: () => Response) {
   const calls: { url: string; init: RequestInit }[] = [];
@@ -21,10 +21,21 @@ const options = (fetchFn: typeof fetch) => ({
   getToken: async () => "ACCESS_TOKEN",
 });
 
-describe("runReserveJob", () => {
+/** jobs.run が返す Operation。metadata は起動した Execution。 */
+const operation = (execution = "toshima-tennis-reserve-ab12c") =>
+  new Response(
+    JSON.stringify({
+      name: "projects/toshima-tennis/locations/asia-northeast1/operations/op-1",
+      metadata: {
+        name: `projects/toshima-tennis/locations/asia-northeast1/jobs/toshima-tennis-reserve/executions/${execution}`,
+      },
+    }),
+  );
+
+describe("runJob", () => {
   test("Cloud Run Jobs の run API を叩く", async () => {
-    const { calls, fetchFn } = stubFetch(() => new Response("{}"));
-    await runReserveJob(target, "2026-08-08 第1面 9:00～11:00", options(fetchFn));
+    const { calls, fetchFn } = stubFetch(() => operation());
+    await runJob(target, options(fetchFn));
 
     expect(calls[0]!.url).toBe(
       "https://run.googleapis.com/v2/projects/toshima-tennis/locations/asia-northeast1/jobs/toshima-tennis-reserve:run",
@@ -34,23 +45,29 @@ describe("runReserveJob", () => {
     expect(headers["Authorization"]).toBe("Bearer ACCESS_TOKEN");
   });
 
-  test("予約するコマを環境変数の上書きとして渡す", async () => {
-    const { calls, fetchFn } = stubFetch(() => new Response("{}"));
-    await runReserveJob(target, "2026-08-08 第1面 9:00～11:00", options(fetchFn));
+  test("環境変数の上書きを渡さない", async () => {
+    const { calls, fetchFn } = stubFetch(() => operation());
+    await runJob(target, options(fetchFn));
 
-    const body = JSON.parse(String(calls[0]!.init.body));
-    expect(body.overrides.containerOverrides[0].env).toEqual([
-      { name: "RESERVE_SLOT", value: "2026-08-08 第1面 9:00～11:00" },
-    ]);
+    const body = JSON.parse(String(calls[0]!.init.body ?? "{}"));
+    expect(body.overrides).toBeUndefined();
+  });
+
+  test("起動した Execution の名前を返す", async () => {
+    const { fetchFn } = stubFetch(() => operation("toshima-tennis-reserve-xy9z8"));
+    expect(await runJob(target, options(fetchFn))).toBe("toshima-tennis-reserve-xy9z8");
+  });
+
+  test("Execution の名前が無い応答は例外にする", async () => {
+    const { fetchFn } = stubFetch(() => new Response("{}"));
+    await expect(runJob(target, options(fetchFn))).rejects.toThrow(/Execution/);
   });
 
   test("失敗したらステータスを含めて例外にする", async () => {
     const { fetchFn } = stubFetch(
       () => new Response('{"error":"denied"}', { status: 403 }),
     );
-    await expect(
-      runReserveJob(target, "コマ", options(fetchFn)),
-    ).rejects.toThrow(/403/);
+    await expect(runJob(target, options(fetchFn))).rejects.toThrow(/403/);
   });
 
   test("例外にアクセストークンを含めない", async () => {
@@ -59,7 +76,7 @@ describe("runReserveJob", () => {
       () => new Response(`bad ${secret}`, { status: 500 }),
     );
     try {
-      await runReserveJob(target, "コマ", {
+      await runJob(target, {
         fetchFn,
         getToken: async () => secret,
       });
