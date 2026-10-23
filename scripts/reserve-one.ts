@@ -1,9 +1,9 @@
 /**
  * 1 コマだけ予約する（Cloud Run Job）。
  *
- * LINE のボタンが押されると webhook がこの Job を起動し、RESERVE_SLOT に
- * 予約するコマを渡す。押されてから実行されるまでに時間が空くため、
- * **その時点でまだ空いているとは限らない**。埋まっていれば予約せず終了する。
+ * LINE のボタンが押されると webhook がこの Job を起動し、予約するコマを
+ * この Execution への依頼として state に置く（`src/jobrequest.ts`）。押されてから
+ * 実行されるまでに時間が空くため、**その時点でまだ空いているとは限らない**。埋まっていれば予約せず終了する。
  *
  * ローカル実行:
  *   RESERVE_SLOT="2026-08-08 第1面 9:00～11:00" bun run scripts/reserve-one.ts
@@ -12,6 +12,7 @@ import { ToshimaClient } from "../src/client";
 import { parseConfig } from "../src/config";
 import { loadCredentials } from "../src/credentials";
 import { pushMessage } from "../src/line";
+import { slotForJob } from "../src/jobrequest";
 import { formatReservationBody, slotKey, subjectFor } from "../src/notify";
 import {
   findReservation,
@@ -19,6 +20,7 @@ import {
   reservationKey,
 } from "../src/reservations";
 import { reserveSlot } from "../src/reserve";
+import { stateStoreFromEnv } from "../src/state";
 import { reservedCountInMonth } from "../src/wishlist";
 
 const SOGO_TAIIKUJO = "116005";
@@ -30,7 +32,7 @@ function required(name: string): string {
   return value;
 }
 
-const wanted = required("RESERVE_SLOT");
+const wanted = await slotForJob(process.env, stateStoreFromEnv(), "RESERVE_SLOT");
 const lineToken = required("LINE_CHANNEL_ACCESS_TOKEN");
 const lineTo = required("LINE_TO");
 

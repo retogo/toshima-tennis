@@ -8,7 +8,9 @@
  * webhook のログにも成否が残らないという状態になっていた。
  *
  * 予約と取消は Cloud Run Job に投げる（webhook は予約システムの認証情報を
- * 持たない）。承認は予約システムに触らないので、ここで状態を書き換えるだけ。
+ * 持たない）。対象のコマは環境変数の上書きではなく、起動した Execution 名を
+ * キーにした依頼として state に書く（`src/jobrequest.ts`）。承認は予約システムに
+ * 触らないので、ここで状態を書き換えるだけ。
  *
  * LINE には常に 200 を返す必要があるため、この関数は例外を投げない。
  * 失敗はログと LINE への応答で伝える。
@@ -21,6 +23,7 @@ import {
   type SettingsView,
   type StatusRow,
 } from "./line";
+import { writeJobRequest } from "./jobrequest";
 import { runJob, type JobTarget } from "./runjob";
 import { SNAPSHOT_KEY, formatStatus, parseSnapshot } from "./runtime";
 import {
@@ -69,24 +72,24 @@ export interface DispatchOptions {
   state?: StateStore;
 }
 
-/** 指示ごとに、起動する Job と渡す環境変数を決める。 */
-function jobFor(
-  command: Command,
-  context: DispatchContext,
-): { job: string; env: { name: string; value: string } } | undefined {
-  if (command.action === "reserve") {
-    return {
-      job: context.jobTarget.job,
-      env: { name: "RESERVE_SLOT", value: command.slot },
-    };
-  }
-  if (command.action === "cancel") {
-    return {
-      job: context.cancelJob,
-      env: { name: "CANCEL_SLOT", value: command.slot },
-    };
-  }
+/** 指示ごとに、起動する Job を決める。 */
+function jobFor(command: Command, context: DispatchContext): string | undefined {
+  if (command.action === "reserve") return context.jobTarget.job;
+  if (command.action === "cancel") return context.cancelJob;
   return undefined; // approve は Job を起動しない
+}
+
+/** Job を起動し、その Execution への依頼としてコマを書く。 */
+async function startJob(
+  job: string,
+  slot: string,
+  context: DispatchContext,
+  options: DispatchOptions,
+): Promise<void> {
+  if (!options.state) throw new Error("依頼の置き場が設定されていません");
+
+  const execution = await runJob({ ...context.jobTarget, job }, options);
+  await writeJobRequest(options.state, execution, { slot });
 }
 
 /** 承認を記録する。予約システムには触らない。 */
@@ -243,13 +246,9 @@ export async function dispatchCommands(
     let text: string | undefined;
 
     try {
-      const target = jobFor(command, context);
-      if (target) {
-        await runJob(
-          { ...context.jobTarget, job: target.job },
-          [target.env],
-          options,
-        );
+      const job = jobFor(command, context);
+      if (job) {
+        await startJob(job, command.slot, context, options);
         console.log(`${command.action} を起動しました: ${command.slot}`);
         text = `${command.action === "reserve" ? "予約" : "取消"}を開始しました\n${command.slot}\n結果はあとで送ります。`;
       } else if (command.action === "approve") {
